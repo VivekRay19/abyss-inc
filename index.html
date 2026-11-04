@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ABYSS INC. — Deep-Sea Mining Strategy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js"
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <!-- 3D Underwater World Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- Floating World-Space Notifications & Zone Labels Layer -->
+    <div id="world-labels-layer"></div>
+    <div id="zone-world-badges-layer"></div>
+
+    <!-- ====================================================================
+         TOP STATUS BAR
+         ==================================================================== -->
+    <header class="top-bar-wrapper">
+      <!-- Left Brand Pill -->
+      <div class="brand-pill" id="brand-pill" title="ABYSS INC. — Deep-Sea Mining & Restoration">
+        <div class="brand-logo-icon">
+          <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
+            <path d="M18 3L33 29H3L18 3Z" fill="url(#logoGrad)" />
+            <path
+              d="M7 22C11 19 15 25 19 22C23 19 26 24 29 22L33 29H3L7 22Z"
+              fill="#071C2B"
+              fill-opacity="0.55"
+            />
+            <path
+              d="M5 26C10 23 14 28 19 25C24 22 28 27 31 25"
+              stroke="#7AF8FF"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            />
+            <defs>
+              <linearGradient id="logoGrad" x1="18" y1="3" x2="18" y2="29" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4DF2FF" />
+                <stop offset="1" stop-color="#1288A8" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name">ABYSS INC.</div>
+          <div class="brand-tag" id="hud-phase-label">DEEP-SEA MINING</div>
+        </div>
+      </div>
+
+      <!-- Center Unified Status Pill -->
+      <div class="status-pill">
+        <!-- 1. CASH -->
+        <div class="status-segment" title="Company Treasury & Net Profit">
+          <div class="status-icon">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <ellipse cx="14" cy="20" rx="9" ry="3.5" fill="#D98218" />
+              <path d="M5 16.5C5 18.4 9 20 14 20C19 20 23 18.4 23 16.5V20C23 21.9 19 23.5 14 23.5C9 23.5 5 21.9 5 20V16.5Z" fill="#F5A623" />
+              <ellipse cx="14" cy="14" rx="9" ry="3.5" fill="#FFC83D" />
+              <path d="M5 10.5C5 12.4 9 14 14 14C19 14 23 12.4 23 10.5V14C23 15.9 19 17.5 14 17.5C9 17.5 5 15.9 5 14V10.5Z" fill="#F5A623" />
+              <ellipse cx="14" cy="8.5" rx="9" ry="3.5" fill="#FFE37A" />
+            </svg>
+          </div>
+          <div class="status-info">
+            <span class="status-label">CASH <em id="hud-profit-mini">+$0</em></span>
+            <span class="status-value cash-val" id="hud-treasury">$434K</span>
+          </div>
+        </div>
+
+        <div class="status-divider"></div>
+
+        <!-- 2. OCEAN HEALTH -->
+        <div class="status-segment health-segment" title="Global & Local Benthic Ecosystem Health">
+          <div class="status-icon">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <path d="M14 25C14 18 9 14 9 7C13 9 15 14 14 25Z" fill="#55D99A" />
+              <path d="M14 25C14 17 20 13 21 5C16 8 14 14 14 25Z" fill="#39D9C4" />
+              <path d="M14 25C11 20 6 18 5 12C9 14 12 18 14 25Z" fill="#28B580" />
+            </svg>
+          </div>
+          <div class="status-info health-info">
+            <span class="status-label">OCEAN HEALTH</span>
+            <div class="health-bar-container">
+              <div class="health-track">
+                <div class="health-fill" id="hud-health-bar" style="width: 96%"></div>
+              </div>
+              <span class="status-value health-pct-val" id="hud-health-pct">96%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-divider"></div>
+
+        <!-- 3. ORE RESERVES -->
+        <div class="status-segment" title="Remaining Polymetallic Mineral Reserves on Seabed">
+          <div class="status-icon">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <polygon points="14,3 21,11 18,24 10,24 7,11" fill="#FF9B45" />
+              <polygon points="14,3 21,11 14,16 7,11" fill="#FFD06B" />
+              <polygon points="7,14 13,18 10,25 4,21" fill="#E07222" />
+              <polygon points="21,13 25,20 19,25 15,18" fill="#F5A623" />
+            </svg>
+          </div>
+          <div class="status-info">
+            <span class="status-label">ORE</span>
+            <span class="status-value ore-val" id="hud-reserves">735 t</span>
+          </div>
+        </div>
+
+        <div class="status-divider"></div>
+
+        <!-- 4. ROUND COUNTER -->
+        <div class="status-segment clickable-segment" id="btn-next-round" title="Click to Advance Market Round">
+          <div class="status-icon">
+            <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+              <rect x="4" y="6" width="20" height="18" rx="4" stroke="#39D9C4" stroke-width="2.2" fill="#0B2D43" />
+              <path d="M4 11H24" stroke="#39D9C4" stroke-width="2" />
+              <path d="M9 4V8M19 4V8" stroke="#7AF8FF" stroke-width="2.2" stroke-linecap="round" />
+              <circle cx="10" cy="16" r="1.5" fill="#7AF8FF" />
+              <circle cx="14" cy="16" r="1.5" fill="#7AF8FF" />
+              <circle cx="18" cy="16" r="1.5" fill="#FFC83D" />
+              <circle cx="10" cy="20" r="1.5" fill="#7AF8FF" />
+              <circle cx="14" cy="20" r="1.5" fill="#7AF8FF" />
+            </svg>
+          </div>
+          <div class="status-info">
+            <span class="status-label">ROUND</span>
+            <span class="status-value" id="hud-round">3 / 12</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right World Map, Markers, Settings & Menu Buttons -->
+      <div class="top-utility-buttons">
+        <button class="map-pill-btn" id="btn-world-map" title="Open Connected Underwater World Map (Shortcut: M)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <polygon points="3,6 9,3 15,6 21,3 21,18 15,21 9,18 3,21" stroke="#39D9C4" stroke-width="2" fill="rgba(24,200,218,0.18)" />
+            <path d="M9 3V18M15 6V21" stroke="#39D9C4" stroke-width="1.8" />
+          </svg>
+          <span>WORLD MAP</span>
+          <kbd class="map-kbd">M</kbd>
+        </button>
+
+        <button class="circle-icon-btn" id="btn-reset-camera" title="Reset Camera to Starting Region (Shortcut: R)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke="#39D9C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M3 3v5h5" stroke="#39D9C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="12" cy="12" r="2.5" fill="#7AF8FF" />
+          </svg>
+        </button>
+
+        <button class="circle-icon-btn" id="btn-toggle-markers" title="Toggle 3D Zone Boundary Markers (Shortcut: V)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C8.1 2 5 5.1 5 9C5 14.2 12 22 12 22C12 22 19 14.2 19 9C19 5.1 15.9 2 12 2Z" stroke="#55D99A" stroke-width="2" />
+            <circle cx="12" cy="9" r="2.5" fill="#55D99A" />
+          </svg>
+        </button>
+
+        <button class="circle-icon-btn" id="btn-settings-toggle" title="Audio & Engineering Upgrades">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3.2" stroke="#D5ECFA" stroke-width="2" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+              stroke="#D5ECFA"
+              stroke-width="1.8"
+            />
+          </svg>
+        </button>
+
+        <button class="circle-icon-btn" id="btn-end-summary" title="Executive & Ecological Report">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 7H20M4 12H20M4 17H20" stroke="#D5ECFA" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ENVIRONMENTAL WARNING TOAST -->
+    <div class="env-warning-banner hidden" id="env-warning-banner">
+      <span class="warn-dot"></span>
+      <span id="env-warning-text">Sediment plumes are stressing nearby coral! Click RESTORE to clean damaged zones.</span>
+    </div>
+
+    <!-- ====================================================================
+         LEFT-SIDE MISSION PANEL ("YOUR MISSION" + CURRENT ZONE BADGE)
+         ==================================================================== -->
+    <aside class="left-mission-panel">
+      <section class="ui-panel mission-card">
+        <div class="panel-header-row">
+          <h2 class="panel-heading">YOUR MISSION</h2>
+          <button class="info-expand-btn" id="btn-toggle-stats" title="Toggle Detailed Ecosystem Statistics">
+            Stats ▾
+          </button>
+        </div>
+
+        <div class="mission-checklist">
+          <!-- Objective 1: Mine minerals -->
+          <div class="mission-row" id="mission-row-1">
+            <div class="mission-num-badge" id="mission-badge-1">1</div>
+            <div class="mission-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <polygon points="12,2 19,9 16,21 8,21 5,9" fill="#FFC83D" />
+                <polygon points="12,2 19,9 12,14 5,9" fill="#FFE680" />
+              </svg>
+            </div>
+            <div class="mission-text-col">
+              <span class="mission-label">Mine minerals</span>
+              <span class="mission-progress-sub" id="mission-sub-1">0 / 50 t extracted</span>
+            </div>
+          </div>
+
+          <!-- Objective 2: Watch ocean health -->
+          <div class="mission-row" id="mission-row-2">
+            <div class="mission-num-badge" id="mission-badge-2">2</div>
+            <div class="mission-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M6 19C6 11 12 6 20 5C19 13 14 19 6 19Z" fill="#55D99A" />
+                <path d="M6 19L14 11" stroke="#071C2B" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div class="mission-text-col">
+              <span class="mission-label">Watch ocean health</span>
+              <span class="mission-progress-sub healthy-sub" id="mission-sub-2">Healthy (96%)</span>
+            </div>
+          </div>
+
+          <!-- Objective 3: Restore damaged zones -->
+          <div class="mission-row" id="mission-row-3">
+            <div class="mission-num-badge" id="mission-badge-3">3</div>
+            <div class="mission-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 21V13M12 13C9 13 7 10 7 6C7 4.5 8 4 9 5C10 6 10 8 12 8C14 8 14 4 15.5 4C17 4 17 7 15 10C17 10 19 8 20 9.5C21 11 18 14 12 13Z"
+                  stroke="#FF6B9D"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <div class="mission-text-col">
+              <span class="mission-label">Restore damaged zones</span>
+              <span class="mission-progress-sub" id="mission-sub-3">0 / 2 zones restored</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Zone Quick Locator Bar -->
+        <div class="current-zone-strip" id="btn-open-map-from-mission" title="Click to Open World Map">
+          <div class="cz-left">
+            <span class="cz-dot" id="hud-cur-zone-dot"></span>
+            <div>
+              <div class="cz-label">ACTIVE REGION</div>
+              <div class="cz-name" id="hud-cur-zone-name">Nodule Fields</div>
+            </div>
+          </div>
+          <span class="cz-map-link">Map &rsaquo;</span>
+        </div>
+
+        <!-- Optional Expandable Detailed Ecosystem & Sector Statistics -->
+        <div class="expandable-stats-drawer hidden" id="expandable-stats-drawer">
+          <div class="drawer-divider"></div>
+          <div class="stats-mini-rows">
+            <div class="stat-mini-line">
+              <span>Ore Sold to Surface</span>
+              <strong id="obj-mined-tons">0 t</strong>
+            </div>
+            <div class="stat-mini-line">
+              <span>Active Seabed Scars</span>
+              <strong id="hud-damaged-count">2</strong>
+            </div>
+            <div class="stat-mini-line">
+              <span>Marine Biodiversity</span>
+              <strong id="obj-biodiversity">96%</strong>
+            </div>
+            <div class="stat-mini-line">
+              <span>Ore Market Multiplier</span>
+              <strong id="hud-market">1.00x</strong>
+            </div>
+          </div>
+          <div class="sector-grid-label">LOCAL SEABED CONDITION (7×7)</div>
+          <div class="sector-mini-grid" id="sector-mini-grid"></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ====================================================================
+         RIGHT-SIDE SELECTED MACHINE PANEL & DYNAMIC RULE-CHANGE PANEL
+         ==================================================================== -->
+    <aside class="right-control-column">
+      <!-- 1. Selected Machine Card -->
+      <section class="ui-panel machine-panel" id="machine-panel">
+        <div class="machine-header-top">
+          <h2 class="machine-title" id="sel-machine-name">TRITON-IX</h2>
+
+          <div class="unit-mini-switcher" title="Switch Active Machine (Keys 1, 2, 3)">
+            <button class="unit-chip active" data-machine="crawler" title="TRITON-IX Mining Crawler (1)">1</button>
+            <button class="unit-chip" data-machine="submarine" title="NAUTILUS-IV Support Sub (2)">2</button>
+            <button class="unit-chip" data-machine="drone" title="AEGIS-B10 Restoration ROV (3)">3</button>
+          </div>
+        </div>
+        <div class="machine-status-line">
+          <span class="status-dot dot-ready" id="sel-status-dot"></span>
+          <span class="status-text" id="sel-status-text">Ready to mine</span>
+          <span class="cargo-pill" id="sel-capacity-text">0 / 100 t</span>
+        </div>
+
+        <div class="machine-preview-frame" id="machine-preview-frame" title="Click to Focus Camera on Selected Machine">
+          <canvas id="machine-preview-canvas" width="248" height="122"></canvas>
+          <div class="preview-cargo-track">
+            <div class="preview-cargo-fill" id="sel-capacity-fill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="primary-actions-stack">
+          <button class="action-btn btn-mine" id="btn-mine-nearest">
+            <span class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M14.5 4.5L19.5 9.5M4 20L15.5 8.5M8 4C12 4 16 6 19 9C16 12 13 10 8 4Z"
+                  stroke="#1C242B"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+            <span class="btn-label">MINE</span>
+          </button>
+
+          <button class="action-btn btn-sell" id="btn-offload-hub">
+            <span class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <ellipse cx="12" cy="7" rx="7" ry="3" fill="#FFFFFF" />
+                <path d="M5 11C5 12.7 8.1 14 12 14C15.9 14 19 12.7 19 11V14C19 15.7 15.9 17 12 17C8.1 17 5 15.7 5 14V11Z" fill="#FFFFFF" />
+                <path d="M5 16C5 17.7 8.1 19 12 19C15.9 19 19 17.7 19 16V18.5C19 20.2 15.9 21.5 12 21.5C8.1 21.5 5 20.2 5 18.5V16Z" fill="#D4EAFF" />
+              </svg>
+            </span>
+            <span class="btn-label" id="btn-sell-label">SELL ORE</span>
+          </button>
+
+          <button class="action-btn btn-restore" id="btn-restore-nearest">
+            <span class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 21C12 14 7 10 5 5C10 6 13 10 12 21Z" fill="#0F3828" />
+                <path d="M12 21C12 13 17 9 20 4C15 6 12 11 12 21Z" fill="#0F3828" />
+              </svg>
+            </span>
+            <span class="btn-label">RESTORE</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 2. Dynamic Rule-Change Panel ("RULE CHANGES: 2 LEFT") -->
+      <section class="ui-panel rules-panel">
+        <div class="rules-header">
+          <span class="rules-scale-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3V20M7 20H17M5 7H19" stroke="#FFC83D" stroke-width="2" stroke-linecap="round" />
+              <path d="M5 7L2 13H8L5 7ZM19 7L16 13H22L19 7Z" fill="#FFC83D" />
+            </svg>
+          </span>
+          <span class="rules-title-text">
+            RULE CHANGES: <strong class="cyan-highlight" id="rules-left-count">2 LEFT</strong>
+          </span>
+        </div>
+
+        <div class="rules-cards-grid">
+          <button class="rule-quick-card card-gold" id="btn-rule-1">
+            <div class="rule-card-icon">
+              <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
+                <ellipse cx="14" cy="25" rx="8" ry="3" fill="#D98218" />
+                <ellipse cx="14" cy="21" rx="8" ry="3" fill="#F5A623" />
+                <ellipse cx="14" cy="17" rx="8" ry="3" fill="#FFE066" />
+                <path d="M26 24V10M26 10L21 15M26 10L31 15" stroke="#FFE066" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div class="rule-card-label" id="rule-1-name">Boost mineral price</div>
+            <div class="rule-card-sub" id="rule-1-status">+45% Ore Value</div>
+          </button>
+
+          <button class="rule-quick-card card-purple" id="btn-rule-2">
+            <div class="rule-card-icon">
+              <svg width="34" height="34" viewBox="0 0 36 36" fill="none">
+                <polygon points="4,14 13,11 23,14 32,11 32,27 23,30 13,27 4,30" fill="#4658B8" stroke="#8CA4FF" stroke-width="1.5" />
+                <path d="M18 6C14.7 6 12 8.7 12 12C12 16.5 18 22 18 22C18 22 24 16.5 24 12C24 8.7 21.3 6 18 6Z" fill="#B57CFF" />
+                <circle cx="18" cy="12" r="2.5" fill="#0B2D43" />
+              </svg>
+            </div>
+            <div class="rule-card-label" id="rule-2-name">Open new zone</div>
+            <div class="rule-card-sub" id="rule-2-status">+250t Rich Vein</div>
+          </button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ====================================================================
+         BOTTOM CONTEXTUAL HELP BAR
+         ==================================================================== -->
+    <footer class="bottom-help-pill">
+      <span class="kb-icon">
+        <svg width="20" height="16" viewBox="0 0 22 16" fill="none">
+          <rect x="1" y="1" width="20" height="14" rx="3" stroke="#9CB7C8" stroke-width="1.6" />
+          <rect x="4" y="4" width="2" height="2" fill="#9CB7C8" />
+          <rect x="8" y="4" width="2" height="2" fill="#9CB7C8" />
+          <rect x="12" y="4" width="2" height="2" fill="#9CB7C8" />
+          <rect x="16" y="4" width="2" height="2" fill="#9CB7C8" />
+          <rect x="6" y="10" width="10" height="2" fill="#9CB7C8" />
+        </svg>
+      </span>
+      <span>Click deposit to select &bull; Drag to orbit/pan &bull; WASD to drive &bull; [M] Map &bull; [F] Focus &bull; [R] Reset Cam</span>
+    </footer>
+
+    <!-- ====================================================================
+         MODAL 0: CONNECTED UNDERWATER WORLD MAP (7 REGIONS)
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="world-map-modal">
+      <div class="modal-panel world-map-panel">
+        <div class="modal-header">
+          <div>
+            <div class="modal-eyebrow">ABYSSAL SECTOR CHART &bull; 7 INTERCONNECTED REGIONS</div>
+            <h2 class="modal-title">CONNECTED UNDERWATER WORLD MAP</h2>
+          </div>
+          <button class="modal-close" id="world-map-close">&times;</button>
+        </div>
+
+        <!-- Legend Bar -->
+        <div class="map-legend-row">
+          <span class="legend-item"><i class="leg-dot leg-green"></i> Accessible</span>
+          <span class="legend-item"><i class="leg-dot leg-yellow"></i> Locked</span>
+          <span class="legend-item"><i class="leg-dot leg-red"></i> Protected (No Mining)</span>
+          <span class="legend-item"><i class="leg-dot leg-cyan"></i> Restoration Zone</span>
+          <span class="legend-item"><i class="leg-dot leg-grey"></i> Undiscovered</span>
+        </div>
+
+        <div class="world-map-body">
+          <!-- Left Interactive Schematic Graph of 7 Regions -->
+          <div class="map-graph-canvas" id="map-graph-canvas">
+            <svg class="map-connections-svg" id="map-connections-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+            <div class="map-nodes-layer" id="map-nodes-layer"></div>
+          </div>
+
+          <!-- Right Selected Zone Details Inspector -->
+          <div class="map-zone-inspector" id="map-zone-inspector">
+            <div class="insp-top">
+              <div class="insp-status-badge" id="insp-status-badge">ACCESSIBLE</div>
+              <h3 class="insp-zone-title" id="insp-zone-title">Nodule Fields</h3>
+              <p class="insp-zone-desc" id="insp-zone-desc"></p>
+            </div>
+
+            <div class="insp-metrics-list">
+              <div class="insp-metric-row">
+                <span>Unlock Requirement</span>
+                <strong id="insp-unlock-req">Initially Accessible</strong>
+              </div>
+              <div class="insp-metric-row">
+                <span>Mineral Availability</span>
+                <strong class="amber-text" id="insp-minerals">230 t (3 Deposits)</strong>
+              </div>
+              <div class="insp-metric-row">
+                <span>Ecosystem Health</span>
+                <strong class="emerald-text" id="insp-health">96% Healthy</strong>
+              </div>
+              <div class="insp-metric-row">
+                <span>Environmental Risk</span>
+                <strong id="insp-risk">Moderate</strong>
+              </div>
+              <div class="insp-metric-row">
+                <span>Damaged Sites</span>
+                <strong id="insp-scars">0 Active Scars</strong>
+              </div>
+            </div>
+
+            <div class="insp-activities-block">
+              <div class="sector-grid-label">AVAILABLE ACTIVITIES</div>
+              <div class="insp-activity-tags" id="insp-activity-tags"></div>
+            </div>
+
+            <div class="insp-actions-stack">
+              <button class="action-btn btn-mine hidden" id="btn-map-unlock-zone">
+                <span class="btn-label" id="btn-map-unlock-label">UNLOCK REGION ($45K)</span>
+              </button>
+              <button class="action-btn btn-sell" id="btn-map-navigate">
+                <span class="btn-label">Navigate Machine Here</span>
+              </button>
+              <button class="cmd-btn" id="btn-map-focus" style="width: 100%; padding: 9px">
+                Focus 3D Camera on Region
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 1: RULE CHANGE CONFIRMATION & CHARTER SELECTION
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="rule-modal">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <div class="modal-eyebrow" id="rule-modal-subtitle">CONFIRM RULE CHANGE</div>
+            <h2 class="modal-title" id="rule-modal-title">RULE CHANGE I</h2>
+          </div>
+          <button class="modal-close" id="rule-modal-close">&times;</button>
+        </div>
+        <p class="modal-desc" id="rule-modal-desc"></p>
+        <div class="rule-options-grid" id="rule-options-container"></div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 2: SETTINGS, AUDIO & ENGINEERING UPGRADES
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="settings-modal">
+      <div class="modal-panel settings-panel">
+        <div class="modal-header">
+          <div>
+            <div class="modal-eyebrow">FLEET ENGINEERING & CONTROLS</div>
+            <h2 class="modal-title">ABYSS INC. OPERATIONS</h2>
+          </div>
+          <button class="modal-close" id="settings-modal-close">&times;</button>
+        </div>
+
+        <div class="settings-row">
+          <span>Underwater Hydrophone & Machinery Audio</span>
+          <button class="cmd-btn" id="btn-audio-toggle">Audio: ON</button>
+        </div>
+
+        <div class="settings-row">
+          <span>Camera View Presets</span>
+          <div class="camera-presets">
+            <button class="cam-btn" data-cam="diorama">Canyon Overview</button>
+            <button class="cam-btn" data-cam="crawler">Follow Crawler</button>
+            <button class="cam-btn" data-cam="surface">Surface Vessel</button>
+          </div>
+        </div>
+
+        <div class="sector-grid-label" style="margin-top: 14px">FLEET ENGINEERING UPGRADES (Unlocks Abyssal Trench!)</div>
+        <div class="upgrade-list">
+          <button class="upgrade-btn" id="upg-cutter">
+            <span>Rotary Cutter Torque <em id="upg-cutter-lvl">Lv.1</em></span>
+            <strong id="upg-cutter-cost">$75K</strong>
+          </button>
+          <button class="upgrade-btn" id="upg-hopper">
+            <span>Hopper Ore Silo (+50t) <em id="upg-hopper-lvl">Lv.1</em></span>
+            <strong id="upg-hopper-cost">$65K</strong>
+          </button>
+          <button class="upgrade-btn" id="upg-biolaser">
+            <span>AEGIS Reef Seeder Speed <em id="upg-biolaser-lvl">Lv.1</em></span>
+            <strong id="upg-biolaser-cost">$70K</strong>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 3: EXECUTIVE & ECOLOGICAL EVALUATION REPORT
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="summary-modal">
+      <div class="modal-panel summary-panel">
+        <div class="modal-header">
+          <div>
+            <div class="modal-eyebrow">ABYSS INC. — BOARD & ECOLOGICAL TRIBUNAL</div>
+            <h2 class="modal-title" id="sum-verdict-title">CORPORATE & ECOLOGICAL AUDIT</h2>
+          </div>
+          <button class="modal-close" id="summary-modal-close">&times;</button>
+        </div>
+        <p class="modal-desc" id="sum-verdict-desc"></p>
+
+        <div class="summary-grid">
+          <div class="summary-stat-card">
+            <span class="sum-label">COMPANY CASH</span>
+            <strong class="sum-val cyan-text" id="sum-treasury">$434K</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">NET PROFIT</span>
+            <strong class="sum-val" id="sum-profit">+$0</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">OCEAN HEALTH</span>
+            <strong class="sum-val emerald-text" id="sum-health">96%</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">ORE EXTRACTED</span>
+            <strong class="sum-val amber-text" id="sum-mined">0 t</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">ZONES RESTORED</span>
+            <strong class="sum-val emerald-text" id="sum-restored">0 / 2</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">ACTIVE CHARTERS</span>
+            <strong class="sum-val" id="sum-rules">Standard</strong>
+          </div>
+        </div>
+
+        <div class="summary-actions">
+          <button class="action-btn btn-restore" id="btn-continue-restoring" style="width: auto; padding: 10px 18px">
+            <span class="btn-label">Restore Damaged Zones</span>
+          </button>
+          <button class="cmd-btn" id="btn-close-summary" style="padding: 10px 18px">
+            Return to Game
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
