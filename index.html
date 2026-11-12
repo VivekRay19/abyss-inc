@@ -57,7 +57,8 @@
         </div>
         <div class="brand-text">
           <div class="brand-name">ABYSS INC.</div>
-          <div class="brand-tag" id="hud-phase-label">DEEP-SEA MINING</div>
+          <div class="brand-tag" id="hud-phase-label">ACT 1: THE GOLD RUSH</div>
+          <div class="charter-badge-tag" id="hud-charter-badge">CHARTER V1</div>
         </div>
       </div>
 
@@ -92,7 +93,7 @@
             </svg>
           </div>
           <div class="status-info health-info">
-            <span class="status-label">OCEAN HEALTH</span>
+            <span class="status-label">OCEAN HEALTH <em class="eco-badge-text" id="hud-eco-badge">1.15x ECO</em></span>
             <div class="health-bar-container">
               <div class="health-track">
                 <div class="health-fill" id="hud-health-bar" style="width: 96%"></div>
@@ -187,6 +188,33 @@
         </button>
       </div>
     </header>
+
+    <!-- NARRATIVE COMMUNICATOR: DR. MAREN VOSS -->
+    <div class="maren-dialogue-card hidden" id="maren-dialogue-card">
+      <div class="maren-avatar-col">
+        <div class="maren-avatar-frame" id="maren-avatar-frame">
+          <div class="maren-portrait-graphic">👩‍🔬</div>
+        </div>
+        <div class="maren-tag">Dr. Voss</div>
+      </div>
+      <div class="maren-content-col">
+        <div class="maren-header-row">
+          <span class="maren-role-title">Dr. Maren Voss &bull; Chief Marine Biologist</span>
+          <div class="maren-btns-group">
+            <button class="maren-btn-skip" id="btn-skip-tutorial">Skip Briefing</button>
+            <button class="maren-btn-next" id="btn-next-tutorial">Continue &rsaquo;</button>
+          </div>
+        </div>
+        <p class="maren-speech" id="maren-speech-text">Welcome to ABYSS INC., Director.</p>
+        <div class="maren-task-prompt" id="maren-task-prompt">
+          <span class="task-dot"></span>
+          <span id="maren-task-text">Select TRITON-IX Crawler (Key 1)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CORPORATE BOARD MEMOS TICKER -->
+    <div class="board-memo-stack" id="board-memo-stack"></div>
 
     <!-- ENVIRONMENTAL WARNING TOAST -->
     <div class="env-warning-banner hidden" id="env-warning-banner">
@@ -614,6 +642,88 @@
           </button>
           <button class="cmd-btn" id="btn-close-summary" style="padding: 10px 18px">
             Return to Game
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 4: THE CONSTITUTION — PERMANENT POST-DEFEAT CHARTER RATIFICATION
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="constitution-modal">
+      <div class="modal-panel constitution-panel">
+        <div class="modal-header">
+          <div>
+            <div class="modal-eyebrow" id="const-charter-eyebrow">CHARTER V1 &bull; PERMANENT META-PROGRESSION</div>
+            <h2 class="modal-title">THE CONSTITUTION</h2>
+          </div>
+          <button class="modal-close" id="constitution-modal-close">&times;</button>
+        </div>
+
+        <div class="constitution-quote">
+          &ldquo;The ocean won. But every game has rules — and rules can be rewritten. Ratify a new charter and dive again.&rdquo;
+        </div>
+
+        <p class="modal-desc">
+          Select up to <strong>TWO</strong> permanent constitutional amendments to carry into your next deep-sea expedition.
+        </p>
+
+        <div class="constitution-grid" id="constitution-options-grid"></div>
+
+        <div class="charter-history-box">
+          <div class="sector-grid-label">RATIFIED CHARTER HISTORY</div>
+          <div class="charter-history-list" id="charter-history-list"></div>
+        </div>
+
+        <div class="constitution-actions">
+          <button class="action-btn btn-mine" id="btn-ratify-charter">
+            <span class="btn-label">RATIFY CHARTER &amp; DIVE AGAIN</span>
+          </button>
+          <button class="cmd-btn" id="btn-reset-charter" style="padding: 10px 18px">
+            Reset Charter to Factory Defaults
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 5: FINAL CAMPAIGN ENDING
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="ending-modal">
+      <div class="modal-panel ending-panel">
+        <div class="modal-header">
+          <div>
+            <div class="modal-eyebrow">FINAL ECOLOGICAL &amp; CORPORATE VERDICT</div>
+            <h2 class="modal-title" id="ending-title">THE OCEAN IS NOT FOR SALE</h2>
+          </div>
+          <button class="modal-close" id="ending-modal-close">&times;</button>
+        </div>
+
+        <div class="ending-badge-banner" id="ending-badge-banner">PRISTINE RESTORATION</div>
+        <p class="modal-desc" id="ending-desc-text"></p>
+
+        <div class="summary-grid">
+          <div class="summary-stat-card">
+            <span class="sum-label">FINAL TREASURY</span>
+            <strong class="sum-val cyan-text" id="end-treasury">$500K</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">NET PROFIT</span>
+            <strong class="sum-val" id="end-profit">+$66K</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">GLOBAL OCEAN HEALTH</span>
+            <strong class="sum-val emerald-text" id="end-health">92%</strong>
+          </div>
+          <div class="summary-stat-card">
+            <span class="sum-label">ORE EXTRACTED</span>
+            <strong class="sum-val amber-text" id="end-mined">85 t</strong>
+          </div>
+        </div>
+
+        <div class="summary-actions" style="margin-top: 18px">
+          <button class="action-btn btn-restore" id="btn-restart-campaign" style="width: auto; padding: 12px 24px">
+            <span class="btn-label">Begin New Expedition</span>
           </button>
         </div>
       </div>

@@ -773,4 +773,20 @@ export class EcosystemManager {
       }
     }
   }
+
+  // Signature Event: THE SILENT BLOOM
+  // Dim the bioluminescent organisms in the canyon when ecological health collapses
+  dimBioluminescentOrganisms(factor = 0.25) {
+    for (const j of this.jellyfish) {
+      if (j.bell && j.bell.material && j.bell.material.emissive) {
+        j.bell.material.emissive.multiplyScalar(factor);
+        j.bell.material.opacity = Math.max(0.18, j.bell.material.opacity * factor);
+      }
+    }
+    for (const c of this.corals) {
+      if (c.material && c.material.emissive) {
+        c.material.emissive.multiplyScalar(factor);
+      }
+    }
+  }
 }

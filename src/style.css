@@ -1532,3 +1532,310 @@ body {
     font-size: 17px;
   }
 }
+
+/* ============================================================================
+   NEW STYLES FOR NARRATIVE, CONSTITUTION, AND ENDING MODALS
+   ============================================================================ */
+.charter-badge-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--yellow);
+  background: rgba(255, 200, 61, 0.15);
+  border: 1px solid rgba(255, 200, 61, 0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+.eco-badge-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+  margin-left: 4px;
+}
+
+/* Dr. Maren Voss Communicator Card */
+.maren-dialogue-card {
+  position: fixed;
+  bottom: 54px;
+  left: 20px;
+  width: 480px;
+  max-width: calc(100vw - 40px);
+  background: rgba(7, 28, 43, 0.94);
+  border: 1.5px solid var(--cyan);
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(24, 200, 218, 0.25);
+  z-index: 90;
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  backdrop-filter: blur(12px);
+  animation: slideUpDialogue 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpDialogue {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.maren-avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.maren-avatar-frame {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #1a435d 0%, #081d2e 100%);
+  border: 2px solid var(--cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.maren-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.4px;
+}
+
+.maren-content-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.maren-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.maren-role-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--turquoise);
+  letter-spacing: 0.5px;
+}
+
+.maren-btns-group {
+  display: flex;
+  gap: 6px;
+}
+
+.maren-btn-skip,
+.maren-btn-next {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(57, 217, 196, 0.3);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.maren-btn-next {
+  background: rgba(24, 200, 218, 0.22);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.maren-btn-skip:hover,
+.maren-btn-next:hover {
+  background: var(--cyan);
+  color: #071c2b;
+}
+
+.maren-speech {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #e4f2fa;
+}
+
+.maren-task-prompt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 200, 61, 0.12);
+  border: 1px dashed rgba(255, 200, 61, 0.4);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--yellow);
+  font-weight: 600;
+}
+
+.task-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--yellow);
+  animation: pulseDot 1.4s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+/* Corporate Board Memo Stack */
+.board-memo-stack {
+  position: fixed;
+  top: 74px;
+  right: 284px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 85;
+  pointer-events: none;
+}
+
+.board-memo-toast {
+  background: rgba(7, 28, 43, 0.94);
+  border-left: 4px solid var(--yellow);
+  border-radius: 6px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: memoFadeIn 0.35s ease;
+  pointer-events: auto;
+}
+
+.board-memo-toast.toast-warning { border-color: var(--orange); }
+.board-memo-toast.toast-danger { border-color: var(--red); }
+.board-memo-toast.toast-success { border-color: var(--green); }
+
+@keyframes memoFadeIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.memo-title-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--yellow);
+  margin-bottom: 3px;
+}
+
+.memo-body-text {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #d1e4f0;
+}
+
+/* Constitution Screen & Options */
+.constitution-panel {
+  max-width: 680px !important;
+}
+
+.constitution-quote {
+  font-style: italic;
+  color: var(--turquoise);
+  background: rgba(57, 217, 196, 0.1);
+  border-left: 3px solid var(--turquoise);
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.constitution-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.const-card {
+  background: rgba(11, 45, 67, 0.7);
+  border: 1.5px solid rgba(57, 217, 196, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.const-card:hover {
+  border-color: var(--cyan);
+  background: rgba(24, 200, 218, 0.12);
+}
+
+.const-card.selected {
+  border-color: var(--yellow);
+  background: rgba(255, 200, 61, 0.15);
+  box-shadow: 0 0 16px rgba(255, 200, 61, 0.2);
+}
+
+.const-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.const-card.selected .const-card-title {
+  color: var(--yellow);
+}
+
+.const-card-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.charter-history-box {
+  background: rgba(4, 16, 26, 0.6);
+  border: 1px solid rgba(57, 217, 196, 0.2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  max-height: 110px;
+  overflow-y: auto;
+}
+
+.charter-history-item {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.charter-history-item strong {
+  color: var(--yellow);
+}
+
+.constitution-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ending-badge-banner {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: rgba(85, 217, 154, 0.2);
+  border: 1.5px solid var(--green);
+  color: var(--green);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}

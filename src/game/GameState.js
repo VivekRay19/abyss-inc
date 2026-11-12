@@ -1,39 +1,41 @@
 import * as THREE from 'three';
+import { GAME_BALANCE } from './GameConfig.js';
+import { ConstitutionPersistence } from './ConstitutionPersistence.js';
 
 export const RULE_CHANGES = {
   stage1: {
     id: 'stage1',
-    title: 'RULE CHANGE I — BOOST MINERAL PRICE CHARTER',
+    title: 'RULE CHANGE I — CORPORATE CHARTER AMENDMENT',
     subtitle: 'International Seabed Authority & Board of Directors',
     description:
-      'Use 1 of your 2 corporate rule changes to rewrite market pricing or environmental filtration standards. This decision is permanent for the remainder of the game.',
+      'Use 1 of your 2 corporate rule changes to rewrite market pricing or environmental filtration standards. This decision is permanent for the remainder of this campaign.',
     options: [
       {
         id: 'boost_price',
         badge: 'MARKET BOOST',
         badgeClass: 'badge-amber',
-        title: 'Boost Mineral Price (+45% Value)',
+        title: 'Premium Price Agreement (+45% Base Value)',
         shortTitle: 'Boost mineral price',
-        oneLine: 'Increase all polymetallic ore sell prices by +45% immediately.',
+        oneLine: 'Negotiate premium off-take contracts: +45% Base Mineral Price, but +20% Turbidity penalty.',
         costText: 'Cost: Free Charter Vote',
-        effectsText: '+45% Ore Sell Value • +15% Cutter Torque • +20% Turbidity',
+        effectsText: '+45% Base Ore Value • +15% Mining Torque • +20% Sediment Dispersal',
         apply: (state) => {
           state.priceMultiplier *= 1.45;
           state.miningSpeedMultiplier *= 1.15;
-          state.pollutionMultiplier *= 1.2;
+          state.pollutionMultiplier *= 1.20;
         }
       },
       {
         id: 'filtration',
         badge: 'CLEAN EXTRACTION',
         badgeClass: 'badge-cyan',
-        title: 'Cleaner Extraction Incentives',
-        shortTitle: 'Cleaner extraction',
-        oneLine: 'Cut seabed sediment damage by 40% and claim a $90K green grant.',
+        title: 'Clean Extraction Mandate (-40% Damage)',
+        shortTitle: 'Clean extraction',
+        oneLine: 'Mandate hydraulic shroud filtration: cuts sediment pollution by 40% and claims a $90K green grant.',
         costText: 'Grant: +$90K Cash',
-        effectsText: '-40% Ecosystem Damage • +$90K Compliance Grant',
+        effectsText: '-40% Seabed Disturbance • +$90K Compliance Grant',
         apply: (state) => {
-          state.pollutionMultiplier *= 0.6;
+          state.pollutionMultiplier *= 0.60;
           state.treasury += 90000;
           state.netProfit += 90000;
         }
@@ -42,18 +44,18 @@ export const RULE_CHANGES = {
   },
   stage2: {
     id: 'stage2',
-    title: 'RULE CHANGE II — EXPAND ZONE & RECLAMATION',
+    title: 'RULE CHANGE II — EXPEDITION FOCUS & RECLAMATION',
     subtitle: 'Deep-Basin Survey & Ecological Tribunal',
     description:
-      'Use a rule change to unlock high-grade mineral veins or pivot ABYSS INC. toward high-bounty coral reef restoration.',
+      'Use your final rule change to unlock high-grade mineral extraction permits or pivot corporate operations toward ocean habitat restoration contracts.',
     options: [
       {
         id: 'open_zone',
         badge: 'NEW MINING ZONE',
         badgeClass: 'badge-purple',
-        title: 'Open New High-Grade Zone (+250t)',
+        title: 'Expanded Commercial Permits (+250t Veins)',
         shortTitle: 'Open new zone',
-        oneLine: 'Unlocks Abyssal Trench access, spawns +250t rich veins & boosts speed +25%.',
+        oneLine: 'Unlocks deep fault extraction rights, spawns +250t rich veins & increases crawler speed +25%.',
         costText: 'Permit Cost: $30K',
         effectsText: 'Unlocks Abyssal Trench • +250t Reserves • +25% Speed',
         apply: (state) => {
@@ -84,15 +86,15 @@ export const RULE_CHANGES = {
         id: 'moratorium',
         badge: 'RESTORATION PACT',
         badgeClass: 'badge-green',
-        title: 'Reef Restoration Bounty Charter',
+        title: 'Restoration Mandate Charter ($95K / Reef)',
         shortTitle: 'Restoration bounty',
-        oneLine: 'Doubles payouts for restoring damaged zones ($95K per reef).',
+        oneLine: 'Pivots corporate subsidies to environmental reclamation: doubles restoration bounties to $95K/site.',
         costText: 'Bounty: $95K / Zone',
-        effectsText: '$95K Bounty per Restored Zone • +50% Restoration Speed',
+        effectsText: '$95K Bounty per Restored Site • +50% Restoration Speed',
         apply: (state) => {
           state.phase = 'RESTORATION FOCUS';
           state.restorationBounty = 95000;
-          state.restorationSpeedMultiplier *= 1.5;
+          state.restorationSpeedMultiplier *= 1.50;
         }
       }
     ]
@@ -119,14 +121,31 @@ export class GameController {
     this.miningSpeedMultiplier = 1.0;
     this.pollutionMultiplier = 1.0;
     this.restorationSpeedMultiplier = 1.0;
-    this.restorationBounty = 50000;
+    this.restorationBounty = 65000;
     this.esgBonusPerRestore = 0.08;
 
-    this.round = 3;
+    // Apply active persistent constitution charter modifiers if present
+    this.charter = ConstitutionPersistence.loadCharter();
+    if (this.charter && this.charter.runModifiers) {
+      const mod = this.charter.runModifiers;
+      this.treasury += (mod.bonusStartingCredits || 0);
+      this.priceMultiplier *= (mod.basePriceBonusMultiplier || 1.0);
+      this.pollutionMultiplier *= (mod.pollutionBonusMultiplier || 1.0);
+      this.restorationBounty += (mod.bonusRestorationBounty || 0);
+      if (this.fleet.crawler && mod.crawlerSpeedBonus) {
+        this.fleet.crawler.speed *= mod.crawlerSpeedBonus;
+      }
+      if (this.fleet.crawler && mod.crawlerHopperBonus) {
+        this.fleet.crawler.maxCapacity += mod.crawlerHopperBonus;
+      }
+    }
+
+    this.round = 1;
     this.maxRounds = 12;
     this.roundTimer = 0;
-    this.secondsPerRound = 35;
+    this.secondsPerRound = 40;
 
+    this.currentAct = 1; // 1: The Gold Rush, 2: The Reckoning, 3: The Pivot
     this.phase = 'DEEP-SEA MINING';
     this.selectedMachineId = 'crawler';
 
@@ -487,11 +506,82 @@ export class GameController {
     return false;
   }
 
+  getGlobalOceanHealth() {
+    return this.oceanEnv ? this.oceanEnv.getGlobalOceanHealth() : 96;
+  }
+
+  // Calculate Eco-Rating multiplier based on global ocean health
+  // 80-100: 1.15 | 50: 1.00 | 35: 0.60 | <35: 0.60 down to 0.40
+  getEcoRatingMultiplier() {
+    const health = this.getGlobalOceanHealth();
+    if (health >= 80) return 1.15;
+    if (health >= 50) {
+      return 1.00 + ((health - 50) / 30) * 0.15;
+    }
+    if (health >= 35) {
+      return 0.60 + ((health - 35) / 15) * 0.40;
+    }
+    return Math.max(0.40, 0.40 + (health / 35) * 0.20);
+  }
+
+  // Calculate Ore Grade for a specific location / region:
+  // oreGrade = clamp(0.65 + 0.35 * (localHealth / 100), 0.55, 1.0)
+  calculateOreGrade(localHealth) {
+    const norm = Math.max(0, Math.min(100, localHealth)) / 100;
+    return Math.max(0.55, Math.min(1.0, 0.65 + 0.35 * norm));
+  }
+
+  // Calculate Extraction Yield Multiplier based on local regional health:
+  // >= 80: 1.0
+  // 50..80: 0.55 + 1.5 * (health/100 - 0.5)
+  // 30..50: 0.15 + 2.0 * (health/100 - 0.3)
+  // < 30: 0.10 + 0.05 * (health / 30)
+  calculateYieldMultiplier(localHealth) {
+    if (localHealth >= 80) return 1.0;
+    if (localHealth >= 50) {
+      return Math.max(0.55, Math.min(1.0, 0.55 + 1.5 * (localHealth / 100 - 0.5)));
+    }
+    if (localHealth >= 30) {
+      return Math.max(0.15, Math.min(0.55, 0.15 + 2.0 * (localHealth / 100 - 0.3)));
+    }
+    return Math.max(0.10, Math.min(0.15, 0.10 + 0.05 * (localHealth / 30)));
+  }
+
+  // Formula: finalSalePrice = baseMineralPrice * amendmentMultiplier * oreGrade * ecoRatingMultiplier * marketEventModifier
+  calculateMineralSaleTelemetry(tons, rawValue, zoneId = 'nodule_fields') {
+    let localHealth = 96;
+    if (this.worldMap) {
+      const stats = this.worldMap.getZoneLiveStats(zoneId);
+      if (stats) localHealth = stats.localHealth;
+    }
+
+    const oreGrade = this.calculateOreGrade(localHealth);
+    const ecoMult = this.getEcoRatingMultiplier();
+    const amendmentMult = this.priceMultiplier;
+    const marketMod = this.marketIndex;
+
+    const baseUnit = tons > 0 ? rawValue / tons : 2800;
+    const finalUnit = baseUnit * amendmentMult * oreGrade * ecoMult * marketMod;
+    const totalPayout = Math.round(tons * finalUnit);
+
+    return {
+      tons,
+      baseUnitPrice: Math.round(baseUnit),
+      amendmentMult: Number(amendmentMult.toFixed(2)),
+      oreGrade: Number(oreGrade.toFixed(2)),
+      ecoMult: Number(ecoMult.toFixed(2)),
+      marketMod: Number(marketMod.toFixed(2)),
+      finalUnitPrice: Math.round(finalUnit),
+      totalPayout
+    };
+  }
+
   offloadMachineCargo(mach) {
     if (mach.capacity <= 0.5) return;
 
     const tons = Math.round(mach.capacity);
-    const payout = Math.round(mach.cargoValue * this.priceMultiplier * this.marketIndex);
+    const telemetry = this.calculateMineralSaleTelemetry(tons, mach.cargoValue, mach.lastZoneId || 'nodule_fields');
+    const payout = telemetry.totalPayout;
 
     this.treasury += payout;
     this.netProfit += payout;
@@ -507,7 +597,7 @@ export class GameController {
     if (this.ui.onWorldPopup) {
       this.ui.onWorldPopup(
         mach.root.position.clone().add(new THREE.Vector3(0, 3.0, 0)),
-        `Sold ${tons}t Ore • +$${(payout / 1000).toFixed(1)}K`,
+        `Sold ${tons}t Ore • +$${(payout / 1000).toFixed(1)}K (Grade: ${(telemetry.oreGrade * 100).toFixed(0)}%, Eco: ${telemetry.ecoMult}x)`,
         'popup-gold'
       );
     }
@@ -561,6 +651,54 @@ export class GameController {
     return upgraded;
   }
 
+  evaluateCampaignEnding() {
+    const health = this.getGlobalOceanHealth();
+    const profit = this.netProfit;
+    const restored = this.ecosystem.damagedSites.filter((s) => s.restored).length;
+
+    if (health >= 80 && restored >= 2) {
+      return {
+        id: 'ending_ocean_not_for_sale',
+        title: 'THE OCEAN IS NOT FOR SALE',
+        badge: 'PRISTINE RESTORATION',
+        badgeClass: 'badge-green',
+        desc: 'You demonstrated that corporate ingenuity can serve marine ecosystems. ABYSS INC. has fully transitioned from an extraction company into a global ocean-monitoring and restoration foundation.',
+        health,
+        profit
+      };
+    } else if (health >= 55) {
+      return {
+        id: 'ending_sustainable_balance',
+        title: 'SUSTAINABLE BALANCE',
+        badge: 'BALANCED STEWARDSHIP',
+        badgeClass: 'badge-cyan',
+        desc: 'You extracted necessary technological minerals while actively containing sediment plumes and restoring damaged seabed sectors. The corporation survives, though benthic scars remain.',
+        health,
+        profit
+      };
+    } else if (health >= 25) {
+      return {
+        id: 'ending_too_little_too_late',
+        title: 'TOO LITTLE, TOO LATE',
+        badge: 'DEPLETED MARGINS',
+        badgeClass: 'badge-amber',
+        desc: 'Extraction profits were high initially, but accumulated sediment plumes and collapsed habitats degraded ore quality and prompted buyer boycotts. Reclamation efforts began too late to save the basin.',
+        health,
+        profit
+      };
+    } else {
+      return {
+        id: 'ending_collapse',
+        title: 'ECOLOGICAL COLLAPSE',
+        badge: 'TOTAL EXTINCTION',
+        badgeClass: 'badge-red',
+        desc: 'The Meridian Basin ecosystem has collapsed under catastrophic turbidity and habitat destruction. All commercial permits have been revoked by the ISA tribunal.',
+        health,
+        profit
+      };
+    }
+  }
+
   enactRuleChange(stageKey, optionId) {
     if (this.rulesUsedCount >= this.maxRuleChanges) return false;
     if (stageKey === 'stage1' && this.rule1Enacted) return false;
@@ -592,6 +730,31 @@ export class GameController {
         this.marketIndex = Number(
           (0.92 + Math.sin(this.round * 1.3) * 0.18 + Math.random() * 0.12).toFixed(2)
         );
+
+        // Dynamic 3-Act Campaign progression based on actual conditions & round
+        const globalHealth = this.getGlobalOceanHealth();
+        if (this.currentAct === 1 && (this.round >= 5 || globalHealth < 75 || this.totalTonsMined >= 60)) {
+          this.currentAct = 2;
+          this.phase = 'TURBIDITY RECKONING';
+          if (this.ui.onActTransition) this.ui.onActTransition(2, 'ACT 2: THE RECKONING');
+        } else if (this.currentAct === 2 && (this.round >= 8 || globalHealth < 50 || this.totalTonsMined >= 120)) {
+          this.currentAct = 3;
+          this.phase = 'ECOLOGICAL PIVOT';
+          if (this.ui.onActTransition) this.ui.onActTransition(3, 'ACT 3: THE PIVOT');
+        }
+      } else {
+        // End of campaign triggered!
+        if (this.ui.onCampaignEnd) {
+          this.ui.onCampaignEnd(this.evaluateCampaignEnding());
+        }
+      }
+    }
+
+    // Check Defeat / Collapse condition (Global Ocean Health < 10% or Bankruptcy)
+    if (this.getGlobalOceanHealth() <= 9.5 && !this.defeatTriggered) {
+      this.defeatTriggered = true;
+      if (this.ui.onDefeat) {
+        this.ui.onDefeat('ECOLOGICAL COLLAPSE');
       }
     }
 
@@ -773,13 +936,24 @@ export class GameController {
       this.mineTickAccum += dt * this.miningSpeedMultiplier;
       if (this.mineTickAccum >= 0.55) {
         this.mineTickAccum = 0;
-        const extractTons = Math.min(5, activeDep.remainingTons, c.maxCapacity - c.capacity);
+
+        // Apply local health yield penalty
+        let localHealth = 96;
+        if (this.worldMap && activeDep.zoneId) {
+          const stats = this.worldMap.getZoneLiveStats(activeDep.zoneId);
+          if (stats) localHealth = stats.localHealth;
+        }
+        const yieldMult = this.calculateYieldMultiplier(localHealth);
+        const maxNominal = 5 * yieldMult;
+
+        const extractTons = Math.min(maxNominal, activeDep.remainingTons, c.maxCapacity - c.capacity);
 
         if (extractTons > 0) {
           activeDep.remainingTons -= extractTons;
           c.capacity += extractTons;
           const batchValue = extractTons * activeDep.yieldPerTon;
           c.cargoValue += batchValue;
+          c.lastZoneId = activeDep.zoneId;
           this.totalTonsMined += extractTons;
 
           const nodStart = new THREE.Vector3(

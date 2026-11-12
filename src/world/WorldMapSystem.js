@@ -588,13 +588,23 @@ export class WorldMapSystem {
     // 3. Localized Ocean Health of sectors overlapping this zone
     let healthSum = 0;
     let count = 0;
+    let sedimentSum = 0;
+    let habitatSum = 0;
+    let bioSum = 0;
+
     for (const sec of this.oceanEnv.sectors) {
       if (Math.hypot(sec.x - z.x, sec.z - z.z) <= z.radius + 5.5) {
         healthSum += sec.health;
+        sedimentSum += (sec.sedimentLoad !== undefined ? sec.sedimentLoad : sec.turbidity / 100);
+        habitatSum += (sec.habitatIntegrity !== undefined ? sec.habitatIntegrity : sec.health / 100);
+        bioSum += (sec.biodiversityIndex !== undefined ? sec.biodiversityIndex : sec.health / 100);
         count++;
       }
     }
     const localHealth = count > 0 ? Math.round(healthSum / count) : 96;
+    const avgSediment = count > 0 ? Number((sedimentSum / count).toFixed(2)) : 0.04;
+    const avgHabitat = count > 0 ? Number((habitatSum / count).toFixed(2)) : 0.96;
+    const avgBio = count > 0 ? Number((bioSum / count).toFixed(2)) : 0.96;
 
     // If all scars in The Scar are restored, unlock optional sustainable mining there too
     if (zoneId === 'the_scar' && zoneScars.length > 0 && activeScars === 0) {
@@ -609,7 +619,10 @@ export class WorldMapSystem {
       activeScars,
       restoredScars,
       totalScars: zoneScars.length,
-      localHealth
+      localHealth,
+      sedimentLoad: avgSediment,
+      habitatIntegrity: avgHabitat,
+      biodiversityIndex: avgBio
     };
   }
 

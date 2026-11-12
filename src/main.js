@@ -5,6 +5,9 @@ import { EcosystemManager } from './world/EcosystemManager.js';
 import { MiningFleetManager } from './machines/MiningMachines.js';
 import { WorldMapSystem, WORLD_ZONES_CONFIG } from './world/WorldMapSystem.js';
 import { GameController, RULE_CHANGES } from './game/GameState.js';
+import { GAME_BALANCE } from './game/GameConfig.js';
+import { ConstitutionPersistence } from './game/ConstitutionPersistence.js';
+import { NarrativeSystem } from './game/NarrativeSystem.js';
 
 // ============================================================================
 // 0. CONSTANTS & DOM ELEMENT REFERENCES (INITIALIZED FIRST TO AVOID TDZ)
@@ -82,6 +85,9 @@ const summaryModal = document.getElementById('summary-modal');
 const statsDrawer = document.getElementById('expandable-stats-drawer');
 const toggleStatsBtn = document.getElementById('btn-toggle-stats');
 const toggleMarkersBtn = document.getElementById('btn-toggle-markers');
+const marenCard = document.getElementById('maren-dialogue-card');
+const constitutionModal = document.getElementById('constitution-modal');
+const endingModal = document.getElementById('ending-modal');
 
 // ============================================================================
 // 1. INITIALIZE RENDERER, SCENE, AND ISOMETRIC / THREE-QUARTER CAMERA
@@ -209,6 +215,8 @@ function spawnWorldPopup(worldPos, text, cssClass = 'popup-cyan') {
   }, 1850);
 }
 
+let narrativeSystem = null;
+
 const game = new GameController(
   oceanEnv,
   ecosystem,
@@ -227,6 +235,20 @@ const game = new GameController(
       worldMap.selectZone(zoneId);
       renderWorldMapGraph();
       renderZoneInspector(zoneId);
+    },
+    onActTransition: (actNum, actName) => {
+      sound.playRuleChangeAlert();
+      spawnWorldPopup(
+        fleet.crawler.root.position.clone().add(new THREE.Vector3(0, 3.4, 0)),
+        `Campaign Transition: ${actName}`,
+        'popup-gold'
+      );
+    },
+    onDefeat: (reason) => {
+      openConstitutionModal(reason);
+    },
+    onCampaignEnd: (ending) => {
+      openEndingModal(ending);
     },
     onRuleEnacted: (stageKey, option, remaining) => {
       const leftEl = document.getElementById('rules-left-count');
@@ -263,6 +285,62 @@ const game = new GameController(
   },
   worldMap
 );
+
+// ============================================================================
+// 2.5 NARRATIVE SYSTEM & DR. MAREN VOSS INITIALIZATION
+// ============================================================================
+narrativeSystem = new NarrativeSystem(game, {
+  onDialogueUpdate: (dialogue) => {
+    if (!dialogue || !marenCard) return;
+    marenCard.classList.remove('hidden');
+    const speechEl = document.getElementById('maren-speech-text');
+    const taskEl = document.getElementById('maren-task-text');
+    const promptRow = document.getElementById('maren-task-prompt');
+    const roleEl = document.querySelector('.maren-role-title');
+
+    if (speechEl) speechEl.textContent = dialogue.text;
+    if (roleEl) roleEl.textContent = `${dialogue.speaker} • ${dialogue.role}`;
+
+    if (dialogue.instruction) {
+      if (promptRow) promptRow.style.display = 'flex';
+      if (taskEl) taskEl.textContent = dialogue.instruction;
+    } else if (promptRow) {
+      promptRow.style.display = 'none';
+    }
+  },
+  onTutorialDismiss: () => {
+    if (marenCard) marenCard.classList.add('hidden');
+  },
+  onBoardMemo: (memo) => {
+    const stack = document.getElementById('board-memo-stack');
+    if (!stack) return;
+    const toast = document.createElement('div');
+    toast.className = `board-memo-toast toast-${memo.type}`;
+    toast.innerHTML = `
+      <div class="memo-title-line">
+        <span>${memo.title}</span>
+        <small>${memo.time}</small>
+      </div>
+      <div class="memo-body-text">${memo.body}</div>
+    `;
+    stack.appendChild(toast);
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 7000);
+  }
+});
+
+// Start tutorial automatically for new Operations Directors
+narrativeSystem.startTutorial();
+
+document.getElementById('btn-skip-tutorial')?.addEventListener('click', () => {
+  narrativeSystem.skipTutorial();
+});
+
+document.getElementById('btn-next-tutorial')?.addEventListener('click', () => {
+  narrativeSystem.tutorialStep++;
+  narrativeSystem.showCurrentTutorialStep();
+});
 
 // ============================================================================
 // 3. CONNECTED UNDERWATER WORLD MAP UI (7 REGIONS)
@@ -1251,6 +1329,117 @@ document.getElementById('btn-continue-restoring').addEventListener('click', () =
 });
 
 // ============================================================================
+// 6.5 THE CONSTITUTION & META-PROGRESSION MODAL LOGIC
+// ============================================================================
+let selectedConstitutionIds = [];
+
+function openConstitutionModal(reason = 'Defeat') {
+  sound.resume();
+  sound.playRuleChangeAlert();
+  selectedConstitutionIds = [];
+
+  const charter = ConstitutionPersistence.loadCharter();
+  const charterEyebrow = document.getElementById('const-charter-eyebrow');
+  if (charterEyebrow) {
+    charterEyebrow.textContent = `CHARTER V${charter.charterNumber || 1} • POST-DEFEAT RATIFICATION`;
+  }
+
+  const gridEl = document.getElementById('constitution-options-grid');
+  if (gridEl) {
+    gridEl.innerHTML = '';
+    GAME_BALANCE.constitutionOptions.forEach((opt) => {
+      const card = document.createElement('div');
+      card.className = 'const-card';
+      card.dataset.id = opt.id;
+      card.innerHTML = `
+        <div class="const-card-title">${opt.title}</div>
+        <div class="const-card-desc">${opt.desc}</div>
+      `;
+      card.addEventListener('click', () => {
+        const idx = selectedConstitutionIds.indexOf(opt.id);
+        if (idx >= 0) {
+          selectedConstitutionIds.splice(idx, 1);
+          card.classList.remove('selected');
+        } else {
+          if (selectedConstitutionIds.length >= 2) {
+            const first = selectedConstitutionIds.shift();
+            const prevCard = gridEl.querySelector(`.const-card[data-id="${first}"]`);
+            if (prevCard) prevCard.classList.remove('selected');
+          }
+          selectedConstitutionIds.push(opt.id);
+          card.classList.add('selected');
+        }
+      });
+      gridEl.appendChild(card);
+    });
+  }
+
+  const historyEl = document.getElementById('charter-history-list');
+  if (historyEl) {
+    historyEl.innerHTML = '';
+    (charter.charterHistory || []).slice(-4).reverse().forEach((h) => {
+      const item = document.createElement('div');
+      item.className = 'charter-history-item';
+      item.innerHTML = `<strong>Charter V${h.charterNumber}</strong> (${h.reason}): ${h.amendments.length ? h.amendments.join(' • ') : 'Baseline charter'}`;
+      historyEl.appendChild(item);
+    });
+  }
+
+  if (constitutionModal) constitutionModal.classList.remove('hidden');
+}
+
+document.getElementById('constitution-modal-close')?.addEventListener('click', () => {
+  if (constitutionModal) constitutionModal.classList.add('hidden');
+});
+
+document.getElementById('btn-ratify-charter')?.addEventListener('click', () => {
+  ConstitutionPersistence.ratifyNewCharter(
+    selectedConstitutionIds,
+    GAME_BALANCE.constitutionOptions,
+    'Post-Campaign Ratification'
+  );
+  window.location.reload();
+});
+
+document.getElementById('btn-reset-charter')?.addEventListener('click', () => {
+  if (confirm('Reset charter to factory standard? All meta-progression will be cleared.')) {
+    ConstitutionPersistence.resetCharter();
+    window.location.reload();
+  }
+});
+
+function openEndingModal(verdict) {
+  if (!endingModal) return;
+  sound.playRestorationChime();
+
+  const titleEl = document.getElementById('ending-title');
+  const badgeEl = document.getElementById('ending-badge-banner');
+  const descEl = document.getElementById('ending-desc-text');
+
+  if (titleEl) titleEl.textContent = verdict.title;
+  if (badgeEl) {
+    badgeEl.textContent = verdict.badge;
+    badgeEl.className = `ending-badge-banner ${verdict.badgeClass}`;
+  }
+  if (descEl) descEl.textContent = verdict.desc;
+
+  document.getElementById('end-treasury').textContent = formatCompactCash(game.treasury);
+  document.getElementById('end-profit').textContent = `${game.netProfit >= 0 ? '+' : ''}${formatCompactCash(game.netProfit)}`;
+  document.getElementById('end-health').textContent = `${Math.round(verdict.health)}%`;
+  document.getElementById('end-mined').textContent = `${Math.round(game.totalTonsMined)} t`;
+
+  endingModal.classList.remove('hidden');
+}
+
+document.getElementById('ending-modal-close')?.addEventListener('click', () => {
+  if (endingModal) endingModal.classList.add('hidden');
+});
+
+document.getElementById('btn-restart-campaign')?.addEventListener('click', () => {
+  openConstitutionModal('End of Campaign');
+});
+
+// ============================================================================
 // 7. REAL-TIME HUD & WORLD BADGE SYNCHRONIZATION
 // ============================================================================
 function updateWorldZoneBadges() {
@@ -1324,6 +1513,20 @@ function refreshHUD() {
   document.getElementById('hud-health-pct').textContent = `${healthRounded}%`;
   const healthBar = document.getElementById('hud-health-bar');
   healthBar.style.width = `${healthRounded}%`;
+
+  // Update Eco-Rating badge in top bar
+  const ecoBadge = document.getElementById('hud-eco-badge');
+  if (ecoBadge) {
+    const ecoMult = game.getEcoRatingMultiplier();
+    ecoBadge.textContent = `${ecoMult.toFixed(2)}x ECO`;
+    ecoBadge.style.color = ecoMult >= 1.0 ? '#55d99a' : ecoMult >= 0.65 ? '#ffc83d' : '#f16f75';
+  }
+
+  // Update Charter Badge on Brand Pill
+  const charterBadge = document.getElementById('hud-charter-badge');
+  if (charterBadge && game.charter) {
+    charterBadge.textContent = `CHARTER V${game.charter.charterNumber || 1}`;
+  }
 
   const warnBanner = document.getElementById('env-warning-banner');
   const warnText = document.getElementById('env-warning-text');
@@ -1526,6 +1729,7 @@ function animate() {
     (keyState['KeyA'] || keyState['ArrowLeft'] ? 1 : 0);
 
   game.update(dt, elapsed, { forward, turn });
+  if (narrativeSystem) narrativeSystem.update(dt, elapsed);
   oceanEnv.update(dt, elapsed);
   ecosystem.update(dt, elapsed);
   worldMap.update(dt, elapsed);

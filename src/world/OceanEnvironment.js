@@ -44,6 +44,9 @@ export class OceanEnvironment {
           z: cz,
           health: 96,       // Starts at 96% like the reference HUD
           turbidity: 0,     // 0..100 local sediment cloud intensity
+          sedimentLoad: 0.04,     // Normalized 0..1 sediment load
+          habitatIntegrity: 0.96, // Normalized 0..1 habitat structure
+          biodiversityIndex: 0.96,// Derived 0..1 biodiversity
           minedCount: 0,
           restoredCount: 0
         });
@@ -87,8 +90,19 @@ export class OceanEnvironment {
       const dist = Math.hypot(sector.x - x, sector.z - z);
       if (dist < cellSize * 1.45) {
         const falloff = Math.max(0.15, 1 - dist / (cellSize * 1.45));
-        sector.health = Math.max(0, sector.health - healthLoss * falloff);
-        sector.turbidity = Math.min(100, sector.turbidity + turbidityGain * falloff);
+        
+        // Update ecological variables
+        const sInc = (turbidityGain / 100) * falloff;
+        const hDec = (healthLoss / 100) * falloff;
+        sector.sedimentLoad = Math.min(1.0, (sector.sedimentLoad || 0) + sInc);
+        sector.habitatIntegrity = Math.max(0.0, (sector.habitatIntegrity ?? 0.96) - hDec);
+        sector.biodiversityIndex = Math.max(0.0, sector.habitatIntegrity * (1.0 - 0.70 * sector.sedimentLoad));
+
+        // Part 7.3 formula: localOceanHealth = 100 * (0.45 * habitat + 0.30 * (1 - sediment) + 0.25 * biodiversity)
+        const computedHealth = 100 * (0.45 * sector.habitatIntegrity + 0.30 * (1.0 - sector.sedimentLoad) + 0.25 * sector.biodiversityIndex);
+        sector.health = Math.max(0, Math.min(100, computedHealth));
+        sector.turbidity = Math.min(100, sector.sedimentLoad * 100);
+
         if (sector === centerSector) sector.minedCount++;
       }
     }
@@ -103,8 +117,17 @@ export class OceanEnvironment {
       const dist = Math.hypot(sector.x - x, sector.z - z);
       if (dist < cellSize * 1.65) {
         const falloff = Math.max(0.2, 1 - dist / (cellSize * 1.65));
-        sector.health = Math.min(100, sector.health + healthGain * falloff);
-        sector.turbidity = Math.max(0, sector.turbidity - turbidityClean * falloff);
+
+        const sDec = (turbidityClean / 100) * falloff;
+        const hInc = (healthGain / 100) * falloff;
+        sector.sedimentLoad = Math.max(0.0, (sector.sedimentLoad || 0) - sDec);
+        sector.habitatIntegrity = Math.min(1.0, (sector.habitatIntegrity || 0) + hInc);
+        sector.biodiversityIndex = Math.max(0.0, sector.habitatIntegrity * (1.0 - 0.70 * sector.sedimentLoad));
+
+        const computedHealth = 100 * (0.45 * sector.habitatIntegrity + 0.30 * (1.0 - sector.sedimentLoad) + 0.25 * sector.biodiversityIndex);
+        sector.health = Math.max(0, Math.min(100, computedHealth));
+        sector.turbidity = Math.min(100, sector.sedimentLoad * 100);
+
         if (sector === centerSector) sector.restoredCount++;
       }
     }
@@ -732,6 +755,17 @@ export class OceanEnvironment {
         pos.setY(i, py);
       }
       pos.needsUpdate = true;
+    }
+
+    // Natural slow recovery: sediment settles slowly (rate: 0.008/sec)
+    for (const sector of this.sectors) {
+      if (sector.sedimentLoad > 0.001) {
+        sector.sedimentLoad = Math.max(0, sector.sedimentLoad - dt * 0.006);
+        sector.biodiversityIndex = Math.max(0, sector.habitatIntegrity * (1.0 - 0.70 * sector.sedimentLoad));
+        const computedHealth = 100 * (0.45 * sector.habitatIntegrity + 0.30 * (1.0 - sector.sedimentLoad) + 0.25 * sector.biodiversityIndex);
+        sector.health = Math.max(0, Math.min(100, computedHealth));
+        sector.turbidity = sector.sedimentLoad * 100;
+      }
     }
 
     const globalHealth = this.getGlobalOceanHealth();
