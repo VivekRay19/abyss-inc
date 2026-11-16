@@ -25,44 +25,47 @@ export class EcosystemManager {
     this.buildMineralDeposits();
     this.buildCoralReefsAndFlora();
     this.buildMarineLife();
-    this.initTheScarLegacyDamage();
   }
 
   buildMineralDeposits() {
-    // Distributed across the 7 connected regions (total starting = 735t)
+    // 5 finite mineral deposits in the connected canyon (total = 140t)
     const depositSpecs = [
-      // 1. NODULE FIELDS (Beginner-friendly accessible zone, center canyon)
-      { id: 'dep-1', zoneId: 'nodule_fields', name: 'Central Canyon Bed', type: 'Cobalt-Rich Nodules', x: 1.5, z: 3.5, yieldPerTon: 2900, maxTons: 85, color: 0x18c8da },
-      { id: 'dep-2', zoneId: 'nodule_fields', name: 'Clarion Sandy Terrace', type: 'Polymetallic Nodules', x: -5.5, z: 0.5, yieldPerTon: 2800, maxTons: 75, color: 0x39d9c4 },
-      { id: 'dep-3', zoneId: 'nodule_fields', name: 'Pelagic Plain West', type: 'Polymetallic Nodules', x: 3.0, z: -4.5, yieldPerTon: 2850, maxTons: 70, color: 0x18c8da },
-
-      // 2. THE SCAR (Damaged restoration region — salvageable crust once restored)
-      { id: 'dep-4', zoneId: 'the_scar', name: 'Scarred Rim Salvage Vein', type: 'Manganese-Nickel Bed', x: -2.0, z: 18.5, yieldPerTon: 3000, maxTons: 65, color: 0x18c8da },
-
-      // 3. ABYSSAL TRENCH (Locked initially — deep high-grade canyon)
-      { id: 'dep-5', zoneId: 'abyssal_trench', name: 'Abyssal Trench Pocket', type: 'Hydrothermal Sulfides', x: 13.5, z: -1.5, yieldPerTon: 3500, maxTons: 80, color: 0xffc83d },
-      { id: 'dep-6', zoneId: 'abyssal_trench', name: 'Faultline Cobalt Ledge', type: 'Cobalt-Rich Crust', x: 18.5, z: 5.5, yieldPerTon: 3650, maxTons: 75, color: 0x39d9c4 },
-
-      // 4. VENT GARDENS (Locked initially — environmentally sensitive hydrothermal zone)
-      { id: 'dep-7', zoneId: 'vent_gardens', name: 'Smoker Chimney Vein', type: 'Hydrothermal Sulfides', x: 15.0, z: -15.5, yieldPerTon: 4100, maxTons: 70, color: 0xff9b45 },
-      { id: 'dep-8', zoneId: 'vent_gardens', name: 'Thermal Terrace NE', type: 'Rare-Earth Tellurium', x: 20.5, z: -20.5, yieldPerTon: 4250, maxTons: 70, color: 0xffc83d },
-
-      // 5. THE OUTER ABYSS (Locked initially — remote endgame frontier)
-      { id: 'dep-9', zoneId: 'outer_abyss', name: 'Hadal Frontier Motherlode', type: 'Rare-Earth Tellurium', x: 24.0, z: 18.5, yieldPerTon: 4600, maxTons: 75, color: 0x70f8ff },
-      { id: 'dep-10', zoneId: 'outer_abyss', name: 'Outer Abyssal Monolith Bed', type: 'Rare-Earth Tellurium', x: 28.5, z: 24.0, yieldPerTon: 4800, maxTons: 70, color: 0x39d9c4 }
+      { id: 'dep-1', zoneId: 'nodule_fields', name: 'Central Canyon Bed', type: 'Cobalt-Rich Nodules', x: 1.5, z: 3.5, yieldPerTon: 2800, maxTons: 32, color: 0x18c8da },
+      { id: 'dep-2', zoneId: 'nodule_fields', name: 'Clarion Sandy Terrace', type: 'Polymetallic Nodules', x: -6.5, z: 1.5, yieldPerTon: 2800, maxTons: 28, color: 0x39d9c4 },
+      { id: 'dep-3', zoneId: 'nodule_fields', name: 'Pelagic Plain West', type: 'Polymetallic Nodules', x: 4.0, z: -5.5, yieldPerTon: 2800, maxTons: 28, color: 0x18c8da },
+      { id: 'dep-4', zoneId: 'nodule_fields', name: 'Reef Edge Sulfide Vein', type: 'Hydrothermal Sulfides', x: 10.5, z: 3.0, yieldPerTon: 2800, maxTons: 26, color: 0xffc83d },
+      { id: 'dep-5', zoneId: 'nodule_fields', name: 'South Ridge Deposit', type: 'Manganese-Nickel Bed', x: -3.0, z: 11.5, yieldPerTon: 2800, maxTons: 26, color: 0xff9b45 }
     ];
 
     depositSpecs.forEach((spec) => this.createSingleDeposit(spec));
   }
 
-  initTheScarLegacyDamage() {
-    // Pre-populate "The Scar" (x: -4, z: 22) with 2 damaged sites & abandoned mining debris
-    // so the player has authentic restoration objectives right away!
-    this.oceanEnv.damageSectorAt(-5.5, 21.5, 42, 55);
-    this.oceanEnv.damageSectorAt(-1.5, 24.5, 38, 50);
+  damageNearbyCorals(x, z, amount = 0.2) {
+    const siltColor = new THREE.Color(0x5d5b4e);
+    for (const c of this.corals) {
+      const dist = Math.hypot(c.x - x, c.z - z);
+      if (dist < 18) {
+        c.damageLevel = Math.min(1, (c.damageLevel || 0) + amount * (1 - dist / 18));
+        c.mat1.color.copy(c.origColor1).lerp(siltColor, c.damageLevel * 0.85);
+        c.mat2.color.copy(c.origColor2).lerp(siltColor, c.damageLevel * 0.85);
+        c.frondMat.color.copy(c.origFrond).lerp(siltColor, c.damageLevel * 0.85);
+        c.mat1.emissiveIntensity = Math.max(0.05, 0.55 * (1 - c.damageLevel));
+        c.mat2.emissiveIntensity = Math.max(0.05, 0.55 * (1 - c.damageLevel));
+      }
+    }
+  }
 
-    this.createOrIntensifyDamagedSite(-6.0, 21.5, 'Abandoned Borehole');
-    this.createOrIntensifyDamagedSite(-1.5, 24.5, 'Legacy Dredge Site');
+  updateCoralRecoveryVisuals(recoveryRatio) {
+    const siltColor = new THREE.Color(0x5d5b4e);
+    const t = Math.max(0, Math.min(1, recoveryRatio));
+    for (const c of this.corals) {
+      const targetDmg = (c.damageLevel || 0) * (1 - t);
+      c.mat1.color.copy(c.origColor1).lerp(siltColor, targetDmg * 0.85);
+      c.mat2.color.copy(c.origColor2).lerp(siltColor, targetDmg * 0.85);
+      c.frondMat.color.copy(c.origFrond).lerp(siltColor, targetDmg * 0.85);
+      c.mat1.emissiveIntensity = 0.05 + 0.5 * (1 - targetDmg);
+      c.mat2.emissiveIntensity = 0.05 + 0.5 * (1 - targetDmg);
+    }
   }
 
   createSingleDeposit(spec) {

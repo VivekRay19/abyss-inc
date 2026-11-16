@@ -611,7 +611,7 @@ export class MiningFleetManager {
   }
 
   // =========================================================================
-  // C. SURFACE SUPPORT VESSEL & SEGMENTED UMBILICAL POWER TETHER
+  // C. SURFACE SUPPORT VESSEL, CRANE, OIL SKIMMER & UMBILICAL TETHER
   // =========================================================================
   buildSurfaceVesselAndRiser() {
     const shipGroup = new THREE.Group();
@@ -621,31 +621,68 @@ export class MiningFleetManager {
     shipGroup.position.set(hx, surfaceY, hz);
 
     const shipHullMat = new THREE.MeshStandardMaterial({
-      color: 0x9e3324,
-      roughness: 0.55,
+      color: 0x0b2d43,
+      roughness: 0.45,
       metalness: 0.35
     });
 
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(5.6, 2.2, 13.5), shipHullMat);
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(5.6, 2.0, 13.0), shipHullMat);
     hull.castShadow = true;
     shipGroup.add(hull);
 
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(4.4, 2.8, 3.6), this.mats.bioWhite);
-    bridge.position.set(0, 2.3, 3.8);
+    // Deck plating
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(5.1, 0.2, 12.2), this.mats.gunmetal);
+    deck.position.y = 1.05;
+    shipGroup.add(deck);
+
+    // Bridge / Captain's Cabin
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.6, 3.4), this.mats.whiteArmor);
+    bridge.position.set(0, 2.35, 3.6);
+    bridge.castShadow = true;
     shipGroup.add(bridge);
 
-    for (let sx of [-1.6, 1.6]) {
-      const silo = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.95, 0.95, 3.2, 12),
-        this.mats.yellowArmor
-      );
-      silo.position.set(sx, 2.4, -1.5);
-      shipGroup.add(silo);
-    }
+    const bridgeWindow = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.8, 0.2), this.mats.cyanLight);
+    bridgeWindow.position.set(0, 2.7, 1.85);
+    shipGroup.add(bridgeWindow);
+
+    // Crane / Lowering Mechanism on stern
+    const craneGroup = new THREE.Group();
+    craneGroup.position.set(0, 1.15, -4.4);
+    const cranePost = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.4, 2.6, 10), this.mats.yellowArmor);
+    cranePost.position.y = 1.3;
+    craneGroup.add(cranePost);
+
+    const craneBoom = new THREE.Group();
+    craneBoom.position.set(0, 2.4, 0);
+    const boomBar = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 4.6), this.mats.yellowArmor);
+    boomBar.position.set(0, 0.2, -2.0);
+    craneBoom.add(boomBar);
+
+    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 4.0, 6), this.mats.darkChassis);
+    cable.position.set(0, -1.8, -4.0);
+    craneBoom.add(cable);
+    craneGroup.add(craneBoom);
+    shipGroup.add(craneGroup);
+
+    // Surface Oil Skimmer Arm on bow/side
+    const skimmerGroup = new THREE.Group();
+    skimmerGroup.position.set(2.5, 0.8, -1.2);
+    const skimmerArm = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.28, 0.45), this.mats.orangeAccent);
+    skimmerArm.position.set(1.4, -0.3, 0);
+    skimmerGroup.add(skimmerArm);
+    const skimmerHead = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.4, 12), this.mats.yellowArmor);
+    skimmerHead.position.set(2.8, -0.55, 0);
+    skimmerGroup.add(skimmerHead);
+    shipGroup.add(skimmerGroup);
+
+    // Oil Collection Tank on deck
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 2.6, 12), this.mats.orangeAccent);
+    tank.position.set(-1.5, 2.35, -1.2);
+    shipGroup.add(tank);
 
     this.scene.add(shipGroup);
 
-    // Thick 3D Segmented Black-and-Yellow Umbilical Tether from Main Station to TRITON-IX Crawler (matching reference!)
+    // Thick 3D Segmented Black-and-Yellow Umbilical Tether
     const segCount = 18;
     for (let i = 0; i < segCount; i++) {
       const isBand = i % 3 === 1;
@@ -667,6 +704,9 @@ export class MiningFleetManager {
 
     this.surfaceVessel = {
       group: shipGroup,
+      craneBoom,
+      cable,
+      skimmerGroup,
       baseY: surfaceY
     };
   }
