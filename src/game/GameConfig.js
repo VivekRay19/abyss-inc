@@ -1,6 +1,6 @@
 // ============================================================================
 // ABYSS INC. — MASTER SIMULATION CONFIGURATION & GAME BALANCE PARAMETERS
-// Centralised balance definitions for the streamlined 5-10 minute campaign
+// Single-player environmental strategy, repeatable diving & ongoing operations
 // ============================================================================
 
 export const GAME_STAGES = {
@@ -14,8 +14,16 @@ export const GAME_STAGES = {
   RULE_CHANGE_2: 'RULE_CHANGE_2',
   BUDGET_NEGOTIATION: 'BUDGET_NEGOTIATION',
   DIVE_RESTORATION: 'DIVE_RESTORATION',
-  ENDING: 'ENDING',
+  TUTORIAL_COMPLETE: 'TUTORIAL_COMPLETE',
+  ONGOING_OPERATIONS: 'ONGOING_OPERATIONS',
   DEFEAT: 'DEFEAT'
+};
+
+export const PLAYER_LOCATIONS = {
+  SURFACE: 'SURFACE',
+  DIVING: 'DIVING',
+  UNDERWATER: 'UNDERWATER',
+  SURFACING: 'SURFACING'
 };
 
 export const IMMUTABLE_ECOLOGICAL_LAWS = [
@@ -30,13 +38,13 @@ export const IMMUTABLE_ECOLOGICAL_LAWS = [
 export const GAME_BALANCE = {
   campaign: {
     startingCredits: 120000,
-    totalFiniteSeabedOre: 140, // Finite deposit total across all seabed veins
+    totalFiniteSeabedOre: 240, // 8 finite seabed deposits totaling 240t
     surfaceOilPatchesCount: 8,
     surfaceTankCapacity: 40,
-    warningMinOre: 20, // Minimum ore mined before environmental warning can trigger
-    warningHealthThreshold: 84, // Reef/ocean health below this triggers captain's warning
-    bankruptcyThreshold: 0, // Credits < 0 triggers bankruptcy
-    collapseHealthThreshold: 10 // Ocean health <= 10% triggers ecological collapse
+    warningMinOre: 20,
+    warningHealthThreshold: 84,
+    bankruptcyThreshold: 0,
+    collapseHealthThreshold: 10
   },
 
   // Three Initial Business Settings (NOT counted as the 2 dynamic rule changes)
@@ -60,7 +68,7 @@ export const GAME_BALANCE = {
     }
   },
 
-  // Budget Negotiation Tiers (Part 9)
+  // Restoration Budget Tiers (Single-Player Resource Allocation)
   restorationBudgets: {
     small: {
       id: 'small',
@@ -69,7 +77,7 @@ export const GAME_BALANCE = {
       cleaningPower: 1.0,
       coralKits: 3,
       puzzleClues: 1,
-      desc: 'Minimal supplies: slower coral scrubbing and 1 puzzle clue.'
+      desc: 'Essential diving kit: standard coral scrubbing speed and 1 puzzle clue.'
     },
     standard: {
       id: 'standard',
@@ -78,7 +86,7 @@ export const GAME_BALANCE = {
       cleaningPower: 1.5,
       coralKits: 4,
       puzzleClues: 2,
-      desc: 'Balanced gear: faster scrubbing and 2 puzzle clues.'
+      desc: 'Recommended marine kit: 1.5x faster scrubbing and 2 puzzle clues.'
     },
     generous: {
       id: 'generous',
@@ -87,8 +95,14 @@ export const GAME_BALANCE = {
       cleaningPower: 2.2,
       coralKits: 5,
       puzzleClues: 3,
-      desc: 'Full marine lab kit: rapid scrubbing and full puzzle guidance.'
+      desc: 'Full restoration suite: 2.2x rapid scrubbing and complete puzzle guidance.'
     }
+  },
+
+  // Equipment Upgrades for Ongoing Operations
+  upgrades: {
+    hopper: { cost: 35000, capacityBonus: 15, label: '+15t Cargo Hopper' },
+    drill: { cost: 40000, speedBonus: 1.25, label: '+25% Mining Speed' }
   },
 
   ecology: {
@@ -105,11 +119,10 @@ export const GAME_BALANCE = {
   },
 
   economy: {
-    ecoCertifiedPremium: 1.35, // +35% sale value when Eco-Certified Market is fulfilled
-    maxSafePrice: 3500 // Above this, buyers have increasing risk of rejecting/discounting
+    ecoCertifiedPremium: 1.35,
+    maxSafePrice: 3500
   },
 
-  // Optional Between-Run Constitution Amendments (separate from the 2 in-campaign rule changes)
   constitutionOptions: [
     {
       id: 'const_capital',

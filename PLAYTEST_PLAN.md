@@ -1,41 +1,41 @@
 # ABYSS INC. — Playtest Plan (Create → Test → Refine)
 
-This document defines three structured playtesting scenarios to evaluate usability, rule enforcement, cooperation, and puzzle clarity for the 5–10 minute demonstration.
+This document defines three structured single-player playtesting scenarios verifying repeatable surface-to-seabed diving, tutorial-to-ongoing operations progression, and dynamic rule enforcement.
 
 ---
 
-## Test 1 — First-Time Player (Single-Player)
+## Test 1 — Repeatable Surface & Underwater Navigation
 
-**Participant:** Person unfamiliar with ABYSS INC., given no lengthy verbal instructions.
+**Procedure:**
+1. Start a fresh single-player game and complete initial deployment.
+2. Mine ore underwater, then press `F` (**RETURN TO SURFACE [F]**).
+3. On the surface, press `F` (**DIVE TO OCEAN FLOOR [F]**) and confirm arrival on the seabed.
+4. Mine additional ore and press `F` to return to the surface again.
+5. Repeat the Dive ↔ Surface cycle at least 3 times.
 
-**Observation Checklist:**
-- [ ] Understands Captain Harlan's opening dialogue and enters Player & Company Name.
-- [ ] Understands the three initial business settings (Capacity, Selling Price, Extraction Target) and their consequences.
-- [ ] Watches the deployment animation and can drive the mining machine (`WASD`) and mine (`E`).
-- [ ] Notices visible environmental damage (sediment clouds, darkened seabed, fading coral, murky water).
-- [ ] Completes Rule Change 1, ascends to the surface, and cleans all 8 oil slicks.
-- [ ] Completes Rule Change 2, negotiates/selects a restoration budget, and finishes both reef restoration mini-games.
+**Verification Checklist:**
+- [ ] Player can dive and return to the surface repeatedly without input locks.
+- [ ] Credits, ore stockpile, remaining seabed reserves, environmental damage, and enacted rules remain intact across every transition.
 
 ---
 
-## Test 2 — Cooperative Gameplay (Local 2-Player Co-op)
+## Test 2 — Tutorial Completion into Ongoing Operations
 
-**Participants:** Two players sharing one screen (Player 1: Operations Director, Player 2: Marine Scientist).
+**Procedure:**
+1. Complete the tutorial story (Rule Change 1, Surface Oil Cleanup, Rule Change 2, Restoration Budget, Reef Cleaning & Water-Flow Logic Puzzle).
+2. Confirm the **TUTORIAL COMPLETE!** screen appears with the **CONTINUE OPERATIONS** button.
+3. Click **CONTINUE OPERATIONS** and continue playing.
 
-**Observation Checklist:**
-- [ ] Both players clearly understand their asymmetric roles and information panels.
-- [ ] Operations Director (`P1`) and Marine Scientist (`P2`, `[Q]` scan) communicate about when to stop mining.
-- [ ] Both players discuss and agree on Rule Change 1 and Rule Change 2.
-- [ ] Budget Negotiation works smoothly: P1 proposes, P2 accepts or makes 1 counterproposal, P1 confirms.
-- [ ] Both players collaborate to solve the Water-Flow Logic Puzzle and restore the reef.
+**Verification Checklist:**
+- [ ] Completing the tutorial does **not** reset the company or force a return to the main menu.
+- [ ] Player can dive (`[F]`), mine remaining deposits, surface (`[F]`), sell ore, purchase equipment upgrades (`+15t Hold`, `+25% Drill`), and restore reefs in Ongoing Operations.
 
 ---
 
 ## Test 3 — Different Rule Choices (Branch Verification)
 
-**Procedure:** Complete two separate runs selecting opposite options for Rule 1 and Rule 2.
+**Procedure:** Complete separate runs selecting opposite options for Rule 1 and Rule 2.
 
 **Verification Checklist:**
-- [ ] **Run A (Continuous Extraction + Open Market):** Mining remains unlocked after Rule 1; extra mining causes heavier damage; ore can be sold immediately after Rule 2 without reef certification.
-- [ ] **Run B (Restoration-First Permit + Eco-Certified Market):** Further mining is immediately prohibited after Rule 1; ore sales are blocked after Rule 2 until reef restoration is completed, then sold with the +35% Eco-Certified premium.
-- [ ] Immutable ecological laws remain active in both runs (finite 140t ore, mining always pollutes, restoration requires interaction).
+- [ ] **Rule 1 (`continuous_extraction` vs `restoration_first`):** Changes whether further mining is permitted before completing reef restoration.
+- [ ] **Rule 2 (`open_market` vs `eco_certified`):** Changes whether ore can be sold immediately or requires restoration completion for the +35% certified premium.

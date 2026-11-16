@@ -611,7 +611,7 @@ export class MiningFleetManager {
   }
 
   // =========================================================================
-  // C. SURFACE SUPPORT VESSEL, CRANE, OIL SKIMMER & UMBILICAL TETHER
+  // C. DETAILED INDUSTRIAL SURFACE VESSEL, CRANE, SKIMMER & TETHER
   // =========================================================================
   buildSurfaceVesselAndRiser() {
     const shipGroup = new THREE.Group();
@@ -620,75 +620,307 @@ export class MiningFleetManager {
     const hz = this.oceanEnv.riserHubPosition.z;
     shipGroup.position.set(hx, surfaceY, hz);
 
-    const shipHullMat = new THREE.MeshStandardMaterial({
-      color: 0x0b2d43,
-      roughness: 0.45,
-      metalness: 0.35
+    const hullNavyMat = new THREE.MeshStandardMaterial({
+      color: 0x0d2d44,
+      roughness: 0.42,
+      metalness: 0.38
+    });
+    const keelRedMat = new THREE.MeshStandardMaterial({
+      color: 0x8c2d22,
+      roughness: 0.52,
+      metalness: 0.25
+    });
+    const containerTealMat = new THREE.MeshStandardMaterial({
+      color: 0x167d94,
+      roughness: 0.48,
+      metalness: 0.32
     });
 
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(5.6, 2.0, 13.0), shipHullMat);
-    hull.castShadow = true;
-    shipGroup.add(hull);
+    // 1. Lower Anti-Fouling Keel + Main Midship Hull + Tapered Bow Wedge
+    const lowerKeel = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.95, 11.6), keelRedMat);
+    lowerKeel.position.set(0, -0.55, -0.4);
+    lowerKeel.castShadow = true;
+    shipGroup.add(lowerKeel);
 
-    // Deck plating
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(5.1, 0.2, 12.2), this.mats.gunmetal);
-    deck.position.y = 1.05;
+    const midHull = new THREE.Mesh(new THREE.BoxGeometry(6.2, 1.55, 11.4), hullNavyMat);
+    midHull.position.set(0, 0.35, -0.5);
+    midHull.castShadow = true;
+    midHull.receiveShadow = true;
+    shipGroup.add(midHull);
+
+    // Sculpted V-Bow section at +Z front
+    const bowGeo = new THREE.CylinderGeometry(0.2, 3.1, 3.8, 4);
+    bowGeo.rotateX(Math.PI / 2);
+    bowGeo.rotateZ(Math.PI / 4);
+    const bowMesh = new THREE.Mesh(bowGeo, hullNavyMat);
+    bowMesh.scale.set(1.0, 0.52, 1.0);
+    bowMesh.position.set(0, 0.38, 6.8);
+    bowMesh.castShadow = true;
+    shipGroup.add(bowMesh);
+
+    // Gunwale Hazard Stripe & Rubber Fenders along port/starboard sides
+    for (let sx of [-3.16, 3.16]) {
+      const bumper = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.28, 11.2),
+        this.mats.hazardStripe
+      );
+      bumper.position.set(sx, 0.92, -0.5);
+      shipGroup.add(bumper);
+
+      for (let fz of [-4.5, -1.8, 0.9, 3.6]) {
+        const tireFender = new THREE.Mesh(
+          new THREE.TorusGeometry(0.32, 0.11, 8, 14),
+          this.mats.trackRubber
+        );
+        tireFender.rotation.y = Math.PI / 2;
+        tireFender.position.set(sx + (sx > 0 ? 0.08 : -0.08), 0.45, fz);
+        shipGroup.add(tireFender);
+      }
+    }
+
+    // 2. Non-Slip Steel Work Deck & Perimeter Safety Railings
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(5.85, 0.22, 11.2), this.mats.gunmetal);
+    deck.position.set(0, 1.15, -0.5);
+    deck.receiveShadow = true;
     shipGroup.add(deck);
 
-    // Bridge / Captain's Cabin
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.6, 3.4), this.mats.whiteArmor);
-    bridge.position.set(0, 2.35, 3.6);
-    bridge.castShadow = true;
-    shipGroup.add(bridge);
+    // Safety railings along port and starboard deck edges
+    for (let sx of [-2.82, 2.82]) {
+      const topRail = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.04, 10.6, 6),
+        this.mats.yellowArmor
+      );
+      topRail.rotation.x = Math.PI / 2;
+      topRail.position.set(sx, 1.82, -0.5);
+      shipGroup.add(topRail);
 
-    const bridgeWindow = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.8, 0.2), this.mats.cyanLight);
-    bridgeWindow.position.set(0, 2.7, 1.85);
-    shipGroup.add(bridgeWindow);
+      for (let rz = -5.4; rz <= 4.6; rz += 1.65) {
+        const post = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04, 0.04, 0.62, 6),
+          this.mats.yellowArmor
+        );
+        post.position.set(sx, 1.52, rz);
+        shipGroup.add(post);
+      }
+    }
 
-    // Crane / Lowering Mechanism on stern
+    // 3. Multi-Tier Wheelhouse / Captain's Bridge (Forward Deck)
+    const bridgeGroup = new THREE.Group();
+    bridgeGroup.position.set(0, 1.25, 3.1);
+
+    // Lower crew cabin with bevelled dark trim
+    const lowerCabin = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.45, 3.2), this.mats.whiteArmor);
+    lowerCabin.position.y = 0.72;
+    lowerCabin.castShadow = true;
+    bridgeGroup.add(lowerCabin);
+
+    const cabinStripe = new THREE.Mesh(new THREE.BoxGeometry(4.46, 0.22, 3.26), containerTealMat);
+    cabinStripe.position.y = 0.25;
+    bridgeGroup.add(cabinStripe);
+
+    // Upper panoramic wheelhouse
+    const upperBridge = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.25, 2.6), this.mats.whiteArmor);
+    upperBridge.position.set(0, 1.98, 0.1);
+    upperBridge.castShadow = true;
+    bridgeGroup.add(upperBridge);
+
+    // Angled Sun Visor Roof
+    const roofVisor = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.18, 3.0), this.mats.darkChassis);
+    roofVisor.position.set(0, 2.65, 0.2);
+    bridgeGroup.add(roofVisor);
+
+    // Recessed Dark Window Frames + Glowing Cyan Instrument Windows (Front, Back & Sides)
+    const frontWinFrame = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.68, 0.16), this.mats.darkChassis);
+    frontWinFrame.position.set(0, 2.05, 1.36);
+    bridgeGroup.add(frontWinFrame);
+
+    for (let wx of [-1.05, 0, 1.05]) {
+      const pane = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.48, 0.18), this.mats.cyanLight);
+      pane.position.set(wx, 2.05, 1.38);
+      bridgeGroup.add(pane);
+    }
+
+    // Aft bridge window overlooking the work deck & crane
+    const aftPane = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.45, 0.14), this.mats.cyanLight);
+    aftPane.position.set(0, 2.05, -1.22);
+    bridgeGroup.add(aftPane);
+
+    // Twin Exhaust Stacks behind the wheelhouse
+    for (let ex of [-1.35, 1.35]) {
+      const stack = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.28, 2.3, 10),
+        this.mats.darkChassis
+      );
+      stack.position.set(ex, 1.65, -1.65);
+      stack.castShadow = true;
+      bridgeGroup.add(stack);
+
+      const stackBand = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.26, 0.26, 0.32, 10),
+        this.mats.yellowArmor
+      );
+      stackBand.position.set(ex, 2.35, -1.65);
+      bridgeGroup.add(stackBand);
+    }
+
+    // Radar Mast, Rotating Scanner Bar & Navigation Lights
+    const mastPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.12, 1.45, 8),
+      this.mats.gunmetal
+    );
+    mastPole.position.set(0, 3.4, 0.1);
+    bridgeGroup.add(mastPole);
+
+    const radarSpinner = new THREE.Mesh(
+      new THREE.BoxGeometry(1.45, 0.14, 0.26),
+      this.mats.whiteArmor
+    );
+    radarSpinner.position.set(0, 4.12, 0.1);
+    bridgeGroup.add(radarSpinner);
+
+    // Port (Red) & Starboard (Green) Running Lights
+    const portLight = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), this.mats.redStrobe);
+    portLight.position.set(-2.0, 2.1, 0.8);
+    bridgeGroup.add(portLight);
+
+    const stbdLight = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), this.mats.emeraldLight);
+    stbdLight.position.set(2.0, 2.1, 0.8);
+    bridgeGroup.add(stbdLight);
+
+    shipGroup.add(bridgeGroup);
+
+    // 4. Corrugated ISO Cargo Container & Coiled Winch Drum on Mid-Deck
+    const containerGroup = new THREE.Group();
+    containerGroup.position.set(-1.35, 1.82, -0.35);
+    const isoBox = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.15, 2.45), containerTealMat);
+    isoBox.castShadow = true;
+    containerGroup.add(isoBox);
+
+    // Corrugation ribs so it never looks like a plain box
+    for (let cz = -0.9; cz <= 0.9; cz += 0.45) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(1.81, 1.05, 0.12), hullNavyMat);
+      rib.position.z = cz;
+      containerGroup.add(rib);
+    }
+    shipGroup.add(containerGroup);
+
+    // Horizontal Oil Recovery Separator Tank & Piping
+    const tankGroup = new THREE.Group();
+    tankGroup.position.set(1.45, 1.82, 0.2);
+    const sepTank = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.62, 0.62, 2.2, 14),
+      this.mats.orangeAccent
+    );
+    sepTank.rotation.x = Math.PI / 2;
+    sepTank.castShadow = true;
+    tankGroup.add(sepTank);
+
+    for (let bz of [-0.7, 0.7]) {
+      const band = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.66, 0.66, 0.16, 14),
+        this.mats.darkChassis
+      );
+      band.rotation.x = Math.PI / 2;
+      band.position.z = bz;
+      tankGroup.add(band);
+    }
+    shipGroup.add(tankGroup);
+
+    // 5. Stern Articulated A-Frame Crane & Lowering Mechanism
     const craneGroup = new THREE.Group();
-    craneGroup.position.set(0, 1.15, -4.4);
-    const cranePost = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.4, 2.6, 10), this.mats.yellowArmor);
-    cranePost.position.y = 1.3;
-    craneGroup.add(cranePost);
+    craneGroup.position.set(0, 1.25, -4.6);
+
+    const craneBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.65, 0.78, 0.55, 12),
+      this.mats.darkChassis
+    );
+    craneBase.position.y = 0.25;
+    craneGroup.add(craneBase);
 
     const craneBoom = new THREE.Group();
-    craneBoom.position.set(0, 2.4, 0);
-    const boomBar = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 4.6), this.mats.yellowArmor);
-    boomBar.position.set(0, 0.2, -2.0);
-    craneBoom.add(boomBar);
+    craneBoom.position.set(0, 0.55, 0);
 
-    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 4.0, 6), this.mats.darkChassis);
-    cable.position.set(0, -1.8, -4.0);
+    // Twin A-frame lattice arms
+    for (let ax of [-0.48, 0.48]) {
+      const pillar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.26, 2.8, 0.32),
+        this.mats.yellowArmor
+      );
+      pillar.position.set(ax, 1.3, -0.35);
+      pillar.rotation.x = -0.22;
+      pillar.castShadow = true;
+      craneBoom.add(pillar);
+    }
+
+    const topJib = new THREE.Mesh(
+      new THREE.BoxGeometry(1.25, 0.34, 4.2),
+      this.mats.yellowArmor
+    );
+    topJib.position.set(0, 2.65, -2.1);
+    topJib.castShadow = true;
+    craneBoom.add(topJib);
+
+    const pulleySheave = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.36, 0.36, 0.42, 12),
+      this.mats.darkChassis
+    );
+    pulleySheave.rotation.z = Math.PI / 2;
+    pulleySheave.position.set(0, 2.55, -3.9);
+    craneBoom.add(pulleySheave);
+
+    const cable = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 4.2, 8),
+      this.mats.darkChassis
+    );
+    cable.position.set(0, 0.3, -3.9);
     craneBoom.add(cable);
+
     craneGroup.add(craneBoom);
     shipGroup.add(craneGroup);
 
-    // Surface Oil Skimmer Arm on bow/side
+    // 6. Starboard Hinged Surface Oil Skimmer Boom & Rotating Collector Drum
     const skimmerGroup = new THREE.Group();
-    skimmerGroup.position.set(2.5, 0.8, -1.2);
-    const skimmerArm = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.28, 0.45), this.mats.orangeAccent);
-    skimmerArm.position.set(1.4, -0.3, 0);
-    skimmerGroup.add(skimmerArm);
-    const skimmerHead = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.4, 12), this.mats.yellowArmor);
-    skimmerHead.position.set(2.8, -0.55, 0);
-    skimmerGroup.add(skimmerHead);
+    skimmerGroup.position.set(2.85, 0.85, -0.6);
+
+    const outriggerArm = new THREE.Mesh(
+      new THREE.BoxGeometry(2.8, 0.22, 0.32),
+      this.mats.yellowArmor
+    );
+    outriggerArm.position.set(1.3, -0.22, 0.4);
+    outriggerArm.rotation.z = -0.18;
+    skimmerGroup.add(outriggerArm);
+
+    const outriggerAft = outriggerArm.clone();
+    outriggerAft.position.z = -0.8;
+    skimmerGroup.add(outriggerAft);
+
+    // Floating orange containment pontoons & rotating skimmer drum on water surface
+    const pontoon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.24, 0.24, 2.1, 12),
+      this.mats.orangeAccent
+    );
+    pontoon.rotation.x = Math.PI / 2;
+    pontoon.position.set(2.65, -0.68, -0.2);
+    skimmerGroup.add(pontoon);
+
+    const skimmerDrum = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.38, 0.38, 1.35, 14),
+      this.mats.hazardStripe
+    );
+    skimmerDrum.rotation.x = Math.PI / 2;
+    skimmerDrum.position.set(2.25, -0.65, -0.2);
+    skimmerGroup.add(skimmerDrum);
+
     shipGroup.add(skimmerGroup);
-
-    // Oil Collection Tank on deck
-    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 2.6, 12), this.mats.orangeAccent);
-    tank.position.set(-1.5, 2.35, -1.2);
-    shipGroup.add(tank);
-
     this.scene.add(shipGroup);
 
-    // Thick 3D Segmented Black-and-Yellow Umbilical Tether
+    // 7. Segmented Umbilical Tether (visible when crawler is underwater or deploying)
     const segCount = 18;
     for (let i = 0; i < segCount; i++) {
       const isBand = i % 3 === 1;
       const segGeo = new THREE.CylinderGeometry(
-        isBand ? 0.24 : 0.17,
-        isBand ? 0.24 : 0.17,
+        isBand ? 0.22 : 0.15,
+        isBand ? 0.22 : 0.15,
         0.75,
         8
       );
@@ -707,6 +939,8 @@ export class MiningFleetManager {
       craneBoom,
       cable,
       skimmerGroup,
+      skimmerDrum,
+      radarSpinner,
       baseY: surfaceY
     };
   }
@@ -892,43 +1126,63 @@ export class MiningFleetManager {
 
   update(dt, elapsed) {
     if (this.surfaceVessel) {
-      this.surfaceVessel.group.position.y =
-        this.surfaceVessel.baseY + Math.sin(elapsed * 1.4) * 0.25;
+      const vx = this.surfaceVessel.group.position.x;
+      const vz = this.surfaceVessel.group.position.z;
+      const waveY =
+        Math.sin(vx * 0.13 + elapsed * 1.45) * 0.22 +
+        Math.cos(vz * 0.11 + elapsed * 1.15) * 0.18;
+      this.surfaceVessel.group.position.y = this.surfaceVessel.baseY + waveY;
+      this.surfaceVessel.group.rotation.z = Math.sin(elapsed * 1.3) * 0.025;
+      this.surfaceVessel.group.rotation.x = Math.cos(elapsed * 1.1) * 0.018;
+
+      if (this.surfaceVessel.radarSpinner) {
+        this.surfaceVessel.radarSpinner.rotation.y += dt * 2.8;
+      }
+      if (this.surfaceVessel.skimmerDrum) {
+        this.surfaceVessel.skimmerDrum.rotation.z += dt * 4.5;
+      }
     }
 
-    // Update 3D Segmented Umbilical Cable from Main Domed Station to rear of TRITON-IX
+    // Update 3D Segmented Umbilical Cable when crawler is underwater or deploying
     if (this.crawler && this.tetherSegments.length > 0) {
-      const start = new THREE.Vector3(
-        this.oceanEnv.riserHubPosition.x + 1.5,
-        this.oceanEnv.riserHubPosition.y + 1.6,
-        this.oceanEnv.riserHubPosition.z + 1.5
-      );
-      const backOffset = new THREE.Vector3(0, 1.35, -1.65).applyAxisAngle(
-        new THREE.Vector3(0, 1, 0),
-        this.crawler.root.rotation.y
-      );
-      const end = this.crawler.root.position.clone().add(backOffset);
+      const onBoatDeck = this.crawler.root.position.y >= 24.5;
+      for (const seg of this.tetherSegments) {
+        seg.visible = !onBoatDeck;
+      }
 
-      const n = this.tetherSegments.length;
-      for (let i = 0; i < n; i++) {
-        const t = (i + 0.5) / n;
-        const tNext = Math.min(1, (i + 1) / n);
-        const px = THREE.MathUtils.lerp(start.x, end.x, t);
-        const pz = THREE.MathUtils.lerp(start.z, end.z, t);
-        const sag = -Math.sin(t * Math.PI) * 1.1;
-        const groundY = this.oceanEnv.getTerrainHeight(px, pz) + 0.25;
-        const py = Math.max(groundY, THREE.MathUtils.lerp(start.y, end.y, t) + sag);
-
-        const nx = THREE.MathUtils.lerp(start.x, end.x, tNext);
-        const nz = THREE.MathUtils.lerp(start.z, end.z, tNext);
-        const ny = Math.max(
-          this.oceanEnv.getTerrainHeight(nx, nz) + 0.25,
-          THREE.MathUtils.lerp(start.y, end.y, tNext) - Math.sin(tNext * Math.PI) * 1.1
+      if (!onBoatDeck) {
+        const start = new THREE.Vector3(
+          this.oceanEnv.riserHubPosition.x + 1.5,
+          this.oceanEnv.riserHubPosition.y + 1.6,
+          this.oceanEnv.riserHubPosition.z + 1.5
         );
+        const backOffset = new THREE.Vector3(0, 1.35, -1.65).applyAxisAngle(
+          new THREE.Vector3(0, 1, 0),
+          this.crawler.root.rotation.y
+        );
+        const end = this.crawler.root.position.clone().add(backOffset);
 
-        const seg = this.tetherSegments[i];
-        seg.position.set(px, py, pz);
-        seg.lookAt(nx, ny, nz);
+        const n = this.tetherSegments.length;
+        for (let i = 0; i < n; i++) {
+          const t = (i + 0.5) / n;
+          const tNext = Math.min(1, (i + 1) / n);
+          const px = THREE.MathUtils.lerp(start.x, end.x, t);
+          const pz = THREE.MathUtils.lerp(start.z, end.z, t);
+          const sag = -Math.sin(t * Math.PI) * 1.1;
+          const groundY = this.oceanEnv.getTerrainHeight(px, pz) + 0.25;
+          const py = Math.max(groundY, THREE.MathUtils.lerp(start.y, end.y, t) + sag);
+
+          const nx = THREE.MathUtils.lerp(start.x, end.x, tNext);
+          const nz = THREE.MathUtils.lerp(start.z, end.z, tNext);
+          const ny = Math.max(
+            this.oceanEnv.getTerrainHeight(nx, nz) + 0.25,
+            THREE.MathUtils.lerp(start.y, end.y, tNext) - Math.sin(tNext * Math.PI) * 1.1
+          );
+
+          const seg = this.tetherSegments[i];
+          seg.position.set(px, py, pz);
+          seg.lookAt(nx, ny, nz);
+        }
       }
     }
 

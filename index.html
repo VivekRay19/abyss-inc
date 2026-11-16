@@ -18,7 +18,7 @@
     <div id="world-labels-layer"></div>
 
     <!-- ====================================================================
-         TOP MINIMAL BAR
+         TOP INDUSTRIAL-MARINE STATUS BAR
          ==================================================================== -->
     <header class="top-bar">
       <div class="brand-pill">
@@ -30,7 +30,7 @@
       </div>
 
       <div class="objective-pill">
-        <span class="obj-label">OBJECTIVE</span>
+        <span class="obj-label" id="hud-mode-badge">TUTORIAL</span>
         <span class="obj-text" id="hud-objective">Establish your mining company</span>
       </div>
 
@@ -39,74 +39,72 @@
           <span id="rule1-badge" class="rule-chip">Rule 1: Pending</span>
           <span id="rule2-badge" class="rule-chip">Rule 2: Pending</span>
         </div>
-        <button class="icon-btn" id="btn-coop-info" title="Role & Controls Guide">?</button>
+        <button class="icon-btn" id="btn-help" title="Controls & Operations Guide">?</button>
         <button class="icon-btn" id="btn-mute" title="Toggle Sound">🔊</button>
       </div>
     </header>
 
     <!-- ====================================================================
-         STAGE-SPECIFIC HUD (BOTTOM-RIGHT / SIDE)
+         CONTEXTUAL SINGLE-PLAYER HUD (RIGHT SIDE)
          ==================================================================== -->
     <aside class="stage-hud hidden" id="stage-hud">
-      <!-- Underwater Mining HUD -->
+      <!-- Underwater Operations HUD -->
       <div id="hud-mining" class="hud-panel hidden">
-        <div class="hud-row"><span>Credits</span><strong id="m-credits" class="val-gold">$120K</strong></div>
-        <div class="hud-row"><span>Machine Hold</span><strong id="m-hold" class="val-cyan">0 / 35 t</strong></div>
+        <div class="hud-panel-title">🌊 SEABED OPERATIONS</div>
+        <div class="hud-row"><span>Company Credits</span><strong id="m-credits" class="val-gold">$120K</strong></div>
+        <div class="hud-row"><span>Crawler Hold</span><strong id="m-hold" class="val-cyan">0 / 35 t</strong></div>
         <div class="hud-row"><span>Ore Extracted</span><strong id="m-extracted">0 / 60 t</strong></div>
-        <div class="hud-row"><span>Seabed Reserves</span><strong id="m-reserves">140 t</strong></div>
-        <div class="hud-row"><span>Reef Condition</span><strong id="m-health" class="val-green">96%</strong></div>
-        <div class="hud-prompt" id="m-prompt">Move with WASD • Approach a glowing deposit</div>
+        <div class="hud-row"><span>Seabed Reserves</span><strong id="m-reserves">240 t</strong></div>
+        <div class="hud-row"><span>Ocean Health</span><strong id="m-health" class="val-green">96%</strong></div>
+        <div class="hud-prompt" id="m-prompt">Move with WASD • Approach a glowing mineral deposit</div>
         <div class="hud-actions">
           <button class="btn-primary" id="btn-mine-toggle">⛏️ Mine [E]</button>
-          <button class="btn-secondary" id="btn-return-boat">🚢 Return to Boat [R]</button>
+          <button class="btn-secondary" id="btn-open-reef-underwater">🪸 Restore Reef</button>
         </div>
+        <button class="btn-dive-nav" id="btn-surface-from-mining">⬆️ RETURN TO SURFACE [F]</button>
       </div>
 
-      <!-- Surface Cleanup HUD -->
+      <!-- Surface Vessel Operations HUD -->
       <div id="hud-cleanup" class="hud-panel hidden">
-        <div class="hud-row"><span>Credits</span><strong id="c-credits" class="val-gold">$120K</strong></div>
+        <div class="hud-panel-title">🚢 SURFACE VESSEL OPERATIONS</div>
+        <div class="hud-row"><span>Company Credits</span><strong id="c-credits" class="val-gold">$120K</strong></div>
         <div class="hud-row"><span>Oil Slicks Cleaned</span><strong id="c-cleaned" class="val-cyan">0 / 8</strong></div>
         <div class="hud-row"><span>Skimmer Tank</span><strong id="c-tank">0 / 40</strong></div>
         <div class="hud-row"><span>Boat Ore Stockpile</span><strong id="c-stockpile">0 t</strong></div>
-        <div class="hud-prompt" id="c-prompt">Steer Boat with WASD • Press [E] near oil slicks</div>
+        <div class="hud-row"><span>Ocean Health</span><strong id="c-health" class="val-green">82%</strong></div>
+        <div class="hud-prompt" id="c-prompt">Steer Boat with WASD • Press [E] near floating oil slicks</div>
         <div class="hud-actions">
           <button class="btn-primary" id="btn-skim-oil">🛢️ Skim Oil [E]</button>
           <button class="btn-secondary" id="btn-empty-tank">♻️ Empty Tank [R]</button>
         </div>
+        <button class="btn-dive-nav" id="btn-dive-from-surface">⬇️ DIVE TO OCEAN FLOOR [F]</button>
       </div>
 
       <!-- Dive Restoration HUD -->
       <div id="hud-restoration" class="hud-panel hidden">
-        <div class="hud-row"><span>Credits</span><strong id="r-credits" class="val-gold">$120K</strong></div>
+        <div class="hud-panel-title">🤿 REEF RESTORATION DIVE</div>
+        <div class="hud-row"><span>Company Credits</span><strong id="r-credits" class="val-gold">$120K</strong></div>
         <div class="hud-row"><span>Reef Cleaned</span><strong id="r-clean-pct" class="val-cyan">0%</strong></div>
         <div class="hud-row"><span>Water Flow Puzzle</span><strong id="r-puzzle-status">Pending</strong></div>
         <div class="hud-row"><span>Ocean Health</span><strong id="r-health" class="val-green">75%</strong></div>
-        <div class="hud-prompt" id="r-prompt">Swim with WASD (Space/Shift up-down) • [E] Start Restoration</div>
+        <div class="hud-prompt" id="r-prompt">Swim with WASD (Space/Shift up-down) • [E] Restore Reef</div>
         <div class="hud-actions">
-          <button class="btn-primary" id="btn-open-clean-reef">🧽 Clean the Reef [E]</button>
-          <button class="btn-secondary hidden" id="btn-open-puzzle">🧩 Rebuild Reef & Puzzle</button>
+          <button class="btn-primary" id="btn-open-clean-reef">🧽 Clean Reef [E]</button>
+          <button class="btn-secondary hidden" id="btn-open-puzzle">🧩 Rebuild Reef</button>
         </div>
+        <button class="btn-dive-nav" id="btn-surface-from-restoration">⬆️ RETURN TO SURFACE [F]</button>
       </div>
 
-      <!-- Co-op Role Panel (Shown when Local Co-op is active) -->
-      <div id="hud-coop-panel" class="hud-panel coop-panel hidden">
-        <div class="coop-header">🤝 LOCAL CO-OP ROLES</div>
-        <div class="coop-role-box p1-box">
-          <div class="role-title">P1: Operations Director (WASD + E/R)</div>
-          <div id="coop-p1-info" class="role-info">Controls boat & machine • Manages credits & target</div>
-        </div>
-        <div class="coop-role-box p2-box">
-          <div class="role-title">P2: Marine Scientist (Arrows + Q)</div>
-          <div id="coop-p2-info" class="role-info">Monitors reef & pollution • Press [Q] to Scan Reef</div>
-          <button class="btn-small" id="btn-p2-scan">🔬 Ecological Scan [Q]</button>
-        </div>
-      </div>
-
-      <!-- Ore Sale Box (Available after Rule 2 if Open Market, or after Reef Restored) -->
+      <!-- Ore Sale & Equipment Upgrades Panel (On Surface) -->
       <div id="hud-sell-box" class="hud-panel hidden">
+        <div class="hud-panel-title">💼 CARGO & UPGRADES</div>
         <div class="hud-row"><span>Stockpile Ready</span><strong id="s-tons">0 t</strong></div>
-        <div class="hud-row"><span>Sales Rule</span><strong id="s-rule">Pending</strong></div>
+        <div class="hud-row"><span>Sales Policy</span><strong id="s-rule">Pending</strong></div>
         <button class="btn-gold" id="btn-sell-ore">💰 Sell Extracted Ore</button>
+        <div class="hud-actions upgrade-row">
+          <button class="btn-secondary btn-small-up" id="btn-up-hopper" title="Expand crawler capacity by +15t">+15t Hold ($35K)</button>
+          <button class="btn-secondary btn-small-up" id="btn-up-drill" title="Increase mining extraction speed by +25%">+25% Drill ($40K)</button>
+        </div>
         <div id="s-status-msg" class="hud-subnote"></div>
       </div>
     </aside>
@@ -125,7 +123,7 @@
     </section>
 
     <!-- ====================================================================
-         MODAL 1: COMPANY SETUP (STAGE 1)
+         MODAL 1: SINGLE-PLAYER COMPANY SETUP (STAGE 1)
          ==================================================================== -->
     <div class="modal-backdrop" id="modal-intro">
       <div class="modal-card">
@@ -146,18 +144,6 @@
           <input type="text" id="input-company-name" value="DeepBlue Co." maxlength="28" />
         </div>
 
-        <div class="form-group">
-          <label>Play Mode</label>
-          <div class="mode-toggle">
-            <button type="button" class="mode-btn active" data-mode="single" id="mode-single">
-              👤 Single Player
-            </button>
-            <button type="button" class="mode-btn" data-mode="coop" id="mode-coop">
-              🤝 Local Co-op (2 Players)
-            </button>
-          </div>
-        </div>
-
         <div class="modal-footer">
           <button class="btn-primary btn-large" id="btn-start-game">Start Game</button>
           <button class="btn-text" id="btn-view-charter">View Optional Between-Run Charter</button>
@@ -173,7 +159,7 @@
         <div class="modal-badge">COMPANY SETUP — INITIAL BUSINESS SETTINGS</div>
         <h2>Set Your Starting Parameters</h2>
         <p class="modal-desc">
-          These three starting parameters configure your expedition. (Note: They are separate from the two in-game dynamic rule changes.)
+          Configure your company's initial parameters before deploying the mining machine. (These are separate from the two in-campaign dynamic rule changes.)
         </p>
 
         <div class="setting-block">
@@ -204,7 +190,7 @@
 
         <div class="setting-block">
           <div class="setting-header">
-            <span>3. Extraction Target (Finite Seabed: 140t)</span>
+            <span>3. Extraction Target (Finite Seabed: 240t)</span>
             <strong id="val-target">60 t</strong>
           </div>
           <input type="range" id="slider-target" min="40" max="100" step="10" value="60" />
@@ -230,10 +216,6 @@
 
         <div class="rule-cards-grid" id="rule-options-grid"></div>
 
-        <div class="coop-vote-note hidden" id="rule-coop-note">
-          🤝 Co-op Discussion: Operations Director & Marine Scientist should agree before confirming!
-        </div>
-
         <div class="modal-footer">
           <button class="btn-primary btn-large" id="btn-confirm-rule" disabled>CONFIRM SELECTED RULE</button>
         </div>
@@ -241,14 +223,14 @@
     </div>
 
     <!-- ====================================================================
-         MODAL 4: RESTORATION BUDGET NEGOTIATION (PART 9)
+         MODAL 4: RESTORATION BUDGET ALLOCATION (SINGLE-PLAYER)
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-negotiation">
       <div class="modal-card modal-wide">
-        <div class="modal-badge badge-cyan">COOPERATION & NEGOTIATION — RESTORATION BUDGET</div>
-        <h2>Agree on Reef Restoration Funding</h2>
+        <div class="modal-badge badge-cyan">RESOURCE ALLOCATION — REEF RESTORATION BUDGET</div>
+        <h2>Select Reef Restoration Funding</h2>
         <p class="modal-desc" id="neg-desc">
-          Operations Director proposes a restoration budget. Marine Scientist reviews and may accept or make one counterproposal.
+          Captain Harlan & the Science Advisory recommend allocating a Standard or Generous budget so your diving gear can scrub sediment and rebuild the coral reef efficiently.
         </p>
         <div class="neg-credits-bar">
           Available Company Credits: <strong id="neg-credits" class="val-gold">$120K</strong>
@@ -300,25 +282,27 @@
     </div>
 
     <!-- ====================================================================
-         MODAL 6: ENDING / DEFEAT SUMMARY
+         MODAL 6: TUTORIAL COMPLETE / OPERATIONS SUMMARY (NO FORCED RESET!)
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-ending">
       <div class="modal-card modal-wide">
-        <div class="modal-badge" id="end-badge">CAMPAIGN COMPLETE</div>
-        <h1 id="end-title">ABYSS INC. — THE OCEAN IS NOT FOR SALE</h1>
+        <div class="modal-badge badge-green" id="end-badge">TUTORIAL COMPLETE — ONGOING OPERATIONS UNLOCKED</div>
+        <h1 id="end-title">TUTORIAL COMPLETE!</h1>
         <p class="modal-desc" id="end-quote">
-          "Maybe the greatest thing we can build isn't a mining company. Maybe it's an ocean worth protecting."
+          "Your company is officially operational. The ocean is still waiting to be explored."
         </p>
         <div class="summary-grid" id="end-summary-grid"></div>
-        <div class="modal-footer">
-          <button class="btn-primary btn-large" id="btn-play-again">Play Again</button>
+        <div class="modal-footer modal-footer-row">
+          <button class="btn-primary btn-large" id="btn-continue-operations">CONTINUE OPERATIONS</button>
+          <button class="btn-secondary" id="btn-replay-tutorial">Replay Tutorial</button>
+          <button class="btn-text" id="btn-return-main-menu">Return to Main Menu</button>
           <button class="btn-secondary hidden" id="btn-open-constitution">Ratify Between-Run Charter</button>
         </div>
       </div>
     </div>
 
     <!-- ====================================================================
-         MODAL 7: OPTIONAL BETWEEN-RUN CONSTITUTION (SEPARATE FROM 2 RULES)
+         MODAL 7: OPTIONAL BETWEEN-RUN CONSTITUTION
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-constitution">
       <div class="modal-card modal-wide">
@@ -336,20 +320,22 @@
     </div>
 
     <!-- ====================================================================
-         MODAL 8: CONTROLS & ROLES GUIDE
+         MODAL 8: SINGLE-PLAYER CONTROLS & OPERATIONS GUIDE
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-help">
       <div class="modal-card">
-        <h2>Controls & Roles</h2>
+        <div class="modal-badge">OPERATIONS MANUAL</div>
+        <h2>Controls & Navigation</h2>
         <ul class="help-list">
-          <li><strong>Move Boat / Mining Machine / Diver:</strong> W A S D</li>
-          <li><strong>Diver Up / Down:</strong> Space / Shift</li>
-          <li><strong>Interact / Mine / Skim Oil / Clean Reef:</strong> E</li>
-          <li><strong>Return to Boat / Empty Tank:</strong> R</li>
-          <li><strong>Co-op Player 2 (Marine Scientist):</strong> Arrow Keys + Q (Ecological Scan)</li>
+          <li><strong>Steer Boat / Drive Crawler / Swim Diver:</strong> W A S D or Arrow Keys</li>
+          <li><strong>Dive to Ocean Floor / Return to Surface:</strong> F</li>
+          <li><strong>Interact / Mine Ore / Skim Oil / Clean Reef:</strong> E</li>
+          <li><strong>Offload Ore / Empty Skimmer Tank:</strong> R</li>
+          <li><strong>Diver Swim Up / Down:</strong> Space / Shift</li>
         </ul>
         <div class="modal-footer">
-          <button class="btn-primary" id="btn-close-help">Close</button>
+          <button class="btn-primary" id="btn-close-help">Resume Game</button>
+          <button class="btn-text" id="btn-help-summary">View Company Status Summary</button>
         </div>
       </div>
     </div>

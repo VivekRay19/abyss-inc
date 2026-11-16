@@ -342,22 +342,8 @@ export class OceanEnvironment {
     this.causticsMesh = new THREE.Mesh(causticGeo, causticMat);
     this.scene.add(this.causticsMesh);
 
-    // Upper Ocean Surface Plane
-    const waterGeo = new THREE.PlaneGeometry(this.worldSize, this.worldSize, 24, 24);
-    waterGeo.rotateX(-Math.PI / 2);
-    const waterMat = new THREE.MeshPhysicalMaterial({
-      color: 0x22a8c4,
-      emissive: 0x06354a,
-      roughness: 0.18,
-      metalness: 0.1,
-      transparent: true,
-      opacity: 0.24,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    this.waterSurface = new THREE.Mesh(waterGeo, waterMat);
-    this.waterSurface.position.y = 26;
-    this.scene.add(this.waterSurface);
+    // Note: Primary ocean surface is rendered by SurfaceOceanManager (no duplicate plane at y=26)
+    this.waterSurface = null;
 
     // Sunlit Volumetric Light Rays piercing down from the surface
     const shaftPositions = [

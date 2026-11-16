@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GAME_BALANCE, GAME_STAGES } from './GameConfig.js';
+import { GAME_BALANCE, GAME_STAGES, PLAYER_LOCATIONS } from './GameConfig.js';
 import { ConstitutionPersistence } from './ConstitutionPersistence.js';
 
 // ============================================================================
@@ -36,7 +36,7 @@ export const RULE_CHANGES = {
         shortTitle: 'Restoration-First Permit',
         pros: 'Protects the reef from further mining damage and keeps restoration manageable.',
         cons: 'Further mining is prohibited until surface cleanup and reef restoration are completed.',
-        effectsText: 'Mining Immediately Prohibited Until Restoration • Lower Environmental Damage',
+        effectsText: 'Mining Prohibited Until Restoration Complete • Lower Environmental Damage',
         apply: (state) => {
           state.miningProhibited = true;
           state.fleet.crawler.state = 'IDLE';
@@ -90,35 +90,45 @@ export class GameController {
     this.sound = sound;
     this.ui = uiCallbacks || {};
 
-    // Stage machine
+    // Authoritative Location & Stage State
+    this.location = PLAYER_LOCATIONS.SURFACE;
     this.stage = GAME_STAGES.SURFACE_INTRO;
     this.stageTimer = 0;
+    this.diveCount = 0;
 
-    // Player & Company Identity
+    // Separate Tutorial State from Persistent Campaign / Ongoing Operations
+    this.tutorialCompleted = false;
+    this.initialOilSpawned = false;
+
+    // Single-Player Company Identity
     this.playerName = 'Alex';
     this.companyName = 'DeepBlue Co.';
-    this.coopMode = false; // false = Single Player, true = Local Co-op (2 Players)
 
-    // Initial Business Settings (NOT counted as the 2 dynamic rule changes)
+    // Initial Business Settings (Separate from the 2 dynamic rule changes)
     this.businessSettings = {
       machineCapacity: 35,
       oreSellingPrice: 2800,
       extractionTarget: 60
     };
 
-    // Core Resources (Strictly limited to the essentials)
+    // Core Resources
     this.credits = GAME_BALANCE.campaign.startingCredits;
     this.startingCredits = GAME_BALANCE.campaign.startingCredits;
     this.creditsEarnedFromSales = 0;
     this.oreInHold = 0;
-    this.oreStockpile = 0; // Offloaded onto boat, ready to sell
+    this.oreStockpile = 0;
     this.totalTonsMined = 0;
     this.totalTonsSold = 0;
 
-    // Modifiers (including optional between-run Constitution)
+    // Modifiers & Upgrades
     this.priceMultiplier = 1.0;
     this.pollutionMultiplier = 1.0;
     this.crawlerSpeedMultiplier = 1.0;
+    this.miningSpeedMultiplier = 1.0;
+    this.upgrades = {
+      hopperLevel: 0,
+      drillLevel: 0
+    };
 
     this.charter = ConstitutionPersistence.loadCharter();
     if (this.charter && this.charter.runModifiers) {
@@ -145,14 +155,12 @@ export class GameController {
     this.surfaceTankFill = 0;
     this.surfaceTankCapacity = GAME_BALANCE.campaign.surfaceTankCapacity;
     this.surfaceCleaned = false;
+    this.pendingExtraOilSlicks = 0;
+    this.ongoingOreSinceOil = 0;
 
-    // Cooperation & Budget Negotiation State
-    this.negotiation = {
-      step: 'P1_PROPOSE', // P1_PROPOSE -> P2_REVIEW -> P1_FINAL -> DONE
-      proposedId: null,
-      counterId: null,
-      agreedId: 'standard'
-    };
+    // Single-Player Restoration Budget State
+    this.budgetSelected = false;
+    this.agreedBudgetId = null;
     this.restorationSupplies = {
       cleaningPower: 1.5,
       coralKits: 4,
@@ -160,13 +168,14 @@ export class GameController {
     };
 
     // Reef Restoration State
-    this.reefCleanProgress = 0; // 0..100
+    this.reefCleanProgress = 0;
     this.puzzleSolved = false;
     this.coralsPlaced = 0;
     this.coralsRequired = 3;
     this.reefRestored = false;
+    this.underwaterMode = 'CRAWLER'; // 'CRAWLER' or 'DIVER'
 
-    // Defeat / Ending
+    // Defeat / Summary
     this.defeatTriggered = false;
     this.defeatReason = null;
     this.endingResult = null;
@@ -176,15 +185,16 @@ export class GameController {
     this.isMiningActive = false;
     this.lastPopupTime = 0;
     this.lastBuyerNote = '';
+    this.nearestDeposit = null;
   }
 
   // --------------------------------------------------------------------------
-  // SETUP & BUSINESS SETTINGS
+  // SETUP & BUSINESS SETTINGS (SINGLE-PLAYER)
   // --------------------------------------------------------------------------
-  setCompanyInfo(playerName, companyName, coopMode) {
+  setCompanyInfo(playerName, companyName) {
     this.playerName = (playerName || 'Alex').trim() || 'Alex';
     this.companyName = (companyName || 'DeepBlue Co.').trim() || 'DeepBlue Co.';
-    this.coopMode = Boolean(coopMode);
+    this.location = PLAYER_LOCATIONS.SURFACE;
     this.stage = GAME_STAGES.BUSINESS_SETTINGS;
     this.notifyStageChange();
   }
@@ -204,19 +214,15 @@ export class GameController {
       extractionTarget: target
     };
 
-    // Apply capacity to crawler
     this.fleet.crawler.maxCapacity = cap;
-    this.fleet.crawler.speed = 6.2 * this.crawlerSpeedMultiplier;
+    this.fleet.crawler.speed = 6.5 * this.crawlerSpeedMultiplier;
 
-    this.stage = GAME_STAGES.DEPLOYMENT;
-    this.stageTimer = 0;
-    this.notifyStageChange();
-    return { ok: true };
+    return this.diveToOceanFloor();
   }
 
   notifyStageChange() {
     if (this.ui.onStageChange) {
-      this.ui.onStageChange(this.stage);
+      this.ui.onStageChange(this.stage, this.location);
     }
   }
 
@@ -229,6 +235,107 @@ export class GameController {
     return Math.round(
       this.ecosystem.deposits.reduce((sum, d) => sum + Math.max(0, d.remainingTons), 0)
     );
+  }
+
+  // --------------------------------------------------------------------------
+  // REPEATABLE SURFACE <-> UNDERWATER NAVIGATION ([F] KEY & BUTTONS)
+  // --------------------------------------------------------------------------
+  canDiveToOceanFloor() {
+    if (this.defeatTriggered) return false;
+    if (this.location !== PLAYER_LOCATIONS.SURFACE) return false;
+    if (
+      this.stage === GAME_STAGES.SURFACE_INTRO ||
+      this.stage === GAME_STAGES.BUSINESS_SETTINGS ||
+      this.stage === GAME_STAGES.RULE_CHANGE_1 ||
+      this.stage === GAME_STAGES.RULE_CHANGE_2 ||
+      this.stage === GAME_STAGES.BUDGET_NEGOTIATION ||
+      this.stage === GAME_STAGES.TUTORIAL_COMPLETE
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  diveToOceanFloor(asDiver = false) {
+    if (
+      this.location === PLAYER_LOCATIONS.DIVING ||
+      this.location === PLAYER_LOCATIONS.SURFACING ||
+      this.location === PLAYER_LOCATIONS.UNDERWATER
+    ) {
+      return { ok: false, error: 'Already underwater or in transition.' };
+    }
+
+    this.diveCount++;
+    this.isMiningActive = false;
+    this.underwaterMode = asDiver ? 'DIVER' : 'CRAWLER';
+    this.location = PLAYER_LOCATIONS.DIVING;
+    this.stage = GAME_STAGES.DEPLOYMENT;
+    this.stageTimer = 0;
+    this.notifyStageChange();
+    return { ok: true, diveCount: this.diveCount };
+  }
+
+  completeDiveTransition() {
+    this.location = PLAYER_LOCATIONS.UNDERWATER;
+    if (this.tutorialCompleted) {
+      this.stage = GAME_STAGES.ONGOING_OPERATIONS;
+    } else if (this.budgetSelected && !this.reefRestored) {
+      this.stage = GAME_STAGES.DIVE_RESTORATION;
+      this.underwaterMode = 'DIVER';
+    } else {
+      this.stage = GAME_STAGES.UNDERWATER_MINING;
+    }
+    this.notifyStageChange();
+  }
+
+  canReturnToSurface() {
+    if (this.defeatTriggered) return false;
+    if (this.location !== PLAYER_LOCATIONS.UNDERWATER) return false;
+    if (
+      this.stage === GAME_STAGES.RULE_CHANGE_1 ||
+      this.stage === GAME_STAGES.RULE_CHANGE_2 ||
+      this.stage === GAME_STAGES.BUDGET_NEGOTIATION ||
+      this.stage === GAME_STAGES.TUTORIAL_COMPLETE
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  returnToSurface() {
+    if (
+      this.location === PLAYER_LOCATIONS.SURFACING ||
+      this.location === PLAYER_LOCATIONS.DIVING ||
+      this.location === PLAYER_LOCATIONS.SURFACE
+    ) {
+      return { ok: false, error: 'Already on surface or in transition.' };
+    }
+
+    this.isMiningActive = false;
+    this.fleet.crawler.state = 'IDLE';
+    if (this.oreInHold > 0) {
+      this.offloadCrawlerToBoat();
+    }
+
+    this.location = PLAYER_LOCATIONS.SURFACING;
+    this.stage = GAME_STAGES.ASCENT_TO_SURFACE;
+    this.stageTimer = 0;
+    this.notifyStageChange();
+    return { ok: true };
+  }
+
+  beginAscentToSurface() {
+    return this.returnToSurface();
+  }
+
+  completeAscentTransition() {
+    this.location = PLAYER_LOCATIONS.SURFACE;
+    if (this.tutorialCompleted) {
+      this.stage = GAME_STAGES.ONGOING_OPERATIONS;
+    } else {
+      this.stage = GAME_STAGES.SURFACE_CLEANUP;
+    }
+    this.notifyStageChange();
   }
 
   // --------------------------------------------------------------------------
@@ -249,23 +356,14 @@ export class GameController {
     if (stageKey === 'extraction') {
       this.rule1Enacted = option;
       if (this.miningProhibited) {
-        // Restoration-First Permit sends machine back to boat immediately
-        this.beginAscentToSurface();
+        this.returnToSurface();
       } else {
-        // Continuous Extraction lets player keep mining or return when ready
-        this.stage = GAME_STAGES.UNDERWATER_MINING;
+        this.stage = this.tutorialCompleted ? GAME_STAGES.ONGOING_OPERATIONS : GAME_STAGES.UNDERWATER_MINING;
         this.notifyStageChange();
       }
     } else if (stageKey === 'sales') {
       this.rule2Enacted = option;
-      // Proceed to Budget Negotiation before diving for reef restoration
       this.stage = GAME_STAGES.BUDGET_NEGOTIATION;
-      this.negotiation = {
-        step: 'P1_PROPOSE',
-        proposedId: null,
-        counterId: null,
-        agreedId: null
-      };
       this.notifyStageChange();
     }
 
@@ -277,7 +375,7 @@ export class GameController {
   }
 
   // --------------------------------------------------------------------------
-  // MINERAL SALES (RESPECTING RULE 2 + COMMERCIAL RISK)
+  // MINERAL SALES & UPGRADES
   // --------------------------------------------------------------------------
   canSellOre() {
     if (this.oreStockpile <= 0) {
@@ -301,18 +399,15 @@ export class GameController {
     const tons = this.oreStockpile;
     const requestedPrice = this.businessSettings.oreSellingPrice;
 
-    // Commercial risk from Setting 2: higher prices risk buyer pushback
     let acceptanceFactor = 1.0;
     let buyerNote = 'Buyers accepted your asking price.';
     if (requestedPrice > GAME_BALANCE.economy.maxSafePrice) {
       const excessRatio = (requestedPrice - GAME_BALANCE.economy.maxSafePrice) / 1000;
-      // Deterministic + slight market variance so high price is genuinely risky
       const pushback = Math.min(0.32, excessRatio * 0.24);
       acceptanceFactor = 1.0 - pushback;
-      buyerNote = `Buyers pushed back on high asking price ($${requestedPrice}/t), negotiating a ${Math.round(pushback * 100)}% discount.`;
+      buyerNote = `Buyers negotiated a ${Math.round(pushback * 100)}% discount on high asking price ($${requestedPrice}/t).`;
     }
 
-    // Eco-certified premium if Rule 2 = eco_certified and certified
     const ecoBonus =
       this.requiresEcoCertification && this.surfaceCleaned && this.reefRestored
         ? GAME_BALANCE.economy.ecoCertifiedPremium
@@ -338,9 +433,28 @@ export class GameController {
     };
   }
 
-  // --------------------------------------------------------------------------
-  // OFFLOAD & ASCENT
-  // --------------------------------------------------------------------------
+  purchaseUpgrade(type) {
+    if (type === 'hopper') {
+      const cfg = GAME_BALANCE.upgrades.hopper;
+      if (this.credits < cfg.cost) return { ok: false, error: 'Insufficient credits for Hopper Upgrade.' };
+      this.credits -= cfg.cost;
+      this.upgrades.hopperLevel++;
+      this.businessSettings.machineCapacity += cfg.capacityBonus;
+      this.fleet.crawler.maxCapacity = this.businessSettings.machineCapacity;
+      this.sound.playCashDeposit();
+      return { ok: true, label: `Capacity increased to ${this.businessSettings.machineCapacity}t!` };
+    } else if (type === 'drill') {
+      const cfg = GAME_BALANCE.upgrades.drill;
+      if (this.credits < cfg.cost) return { ok: false, error: 'Insufficient credits for Drill Upgrade.' };
+      this.credits -= cfg.cost;
+      this.upgrades.drillLevel++;
+      this.miningSpeedMultiplier *= cfg.speedBonus;
+      this.sound.playCashDeposit();
+      return { ok: true, label: 'Mining drill speed increased by +25%!' };
+    }
+    return { ok: false, error: 'Unknown upgrade.' };
+  }
+
   offloadCrawlerToBoat() {
     if (this.oreInHold <= 0) return 0;
     const offloaded = Math.round(this.oreInHold);
@@ -352,54 +466,13 @@ export class GameController {
     return offloaded;
   }
 
-  beginAscentToSurface() {
-    this.isMiningActive = false;
-    this.fleet.crawler.state = 'IDLE';
-    if (this.oreInHold > 0) {
-      this.offloadCrawlerToBoat();
-    }
-    this.stage = GAME_STAGES.ASCENT_TO_SURFACE;
-    this.stageTimer = 0;
-    this.notifyStageChange();
-  }
-
   // --------------------------------------------------------------------------
-  // BUDGET NEGOTIATION (PART 9) — ATOMIC CREDIT VALIDATION
+  // SINGLE-PLAYER RESTORATION BUDGET SELECTION (ATOMIC CREDIT CHECK)
   // --------------------------------------------------------------------------
-  proposeBudget(budgetId) {
-    if (!GAME_BALANCE.restorationBudgets[budgetId]) return false;
-    this.negotiation.proposedId = budgetId;
-
-    if (this.coopMode) {
-      this.negotiation.step = 'P2_REVIEW';
-    } else {
-      // Single player: Captain/Scientist recommends Standard or Generous if affordable
-      const tier = GAME_BALANCE.restorationBudgets[budgetId];
-      if (budgetId === 'small' && this.credits >= GAME_BALANCE.restorationBudgets.standard.cost) {
-        this.negotiation.counterId = 'standard';
-        this.negotiation.step = 'P1_FINAL';
-      } else {
-        return this.finalizeBudget(budgetId);
-      }
-    }
-    return true;
-  }
-
-  scientistRespondBudget(accept, counterBudgetId = null) {
-    if (accept) {
-      return this.finalizeBudget(this.negotiation.proposedId);
-    }
-    if (!counterBudgetId || !GAME_BALANCE.restorationBudgets[counterBudgetId]) return false;
-    this.negotiation.counterId = counterBudgetId;
-    this.negotiation.step = 'P1_FINAL';
-    return true;
-  }
-
   finalizeBudget(budgetId) {
     const tier = GAME_BALANCE.restorationBudgets[budgetId];
     if (!tier) return { ok: false, error: 'Invalid budget tier.' };
 
-    // Atomic check: must have enough credits
     if (this.credits < tier.cost) {
       return {
         ok: false,
@@ -408,8 +481,8 @@ export class GameController {
     }
 
     this.credits -= tier.cost;
-    this.negotiation.agreedId = budgetId;
-    this.negotiation.step = 'DONE';
+    this.agreedBudgetId = budgetId;
+    this.budgetSelected = true;
     this.restorationSupplies = {
       cleaningPower: tier.cleaningPower,
       coralKits: tier.coralKits,
@@ -417,14 +490,12 @@ export class GameController {
     };
 
     this.sound.playCashDeposit();
-    this.stage = GAME_STAGES.DIVE_RESTORATION;
-    this.stageTimer = 0;
-    this.notifyStageChange();
+    this.diveToOceanFloor(true);
     return { ok: true, tier };
   }
 
   // --------------------------------------------------------------------------
-  // REEF RESTORATION COMPLETION
+  // REEF RESTORATION & TUTORIAL COMPLETION -> ONGOING OPERATIONS
   // --------------------------------------------------------------------------
   applyReefCleaningStep(amount) {
     this.reefCleanProgress = Math.min(100, this.reefCleanProgress + amount * this.restorationSupplies.cleaningPower);
@@ -437,8 +508,9 @@ export class GameController {
     this.puzzleSolved = true;
     this.coralsPlaced = this.coralsRequired;
     this.reefRestored = true;
+    // Fulfilling restoration unlocks mining if Restoration-First Permit was active!
+    this.miningProhibited = false;
 
-    // Restore all damaged sites and boost ocean health visibly
     this.ecosystem.damagedSites.forEach((site) => {
       site.restored = true;
       site.restorationProgress = 100;
@@ -454,18 +526,27 @@ export class GameController {
     this.ecosystem.updateCoralRecoveryVisuals(1.0);
     this.sound.playRestorationChime();
 
-    // If Eco-Certified Market was selected, automatically process certified ore sale if stockpile > 0
-    if (this.requiresEcoCertification && this.oreStockpile > 0) {
-      this.sellStockpileOre();
+    // Ensure both dynamic rule changes were resolved before completing tutorial
+    if (!this.tutorialCompleted && this.rule1Enacted && this.rule2Enacted) {
+      this.endingResult = this.evaluateCampaignEnding();
+      this.stage = GAME_STAGES.TUTORIAL_COMPLETE;
+      this.notifyStageChange();
+    } else {
+      this.stage = GAME_STAGES.ONGOING_OPERATIONS;
+      this.notifyStageChange();
     }
+  }
 
-    this.endingResult = this.evaluateCampaignEnding();
-    this.stage = GAME_STAGES.ENDING;
+  continueOperations() {
+    this.tutorialCompleted = true;
+    this.miningProhibited = false;
+    this.underwaterMode = 'CRAWLER';
+    this.stage = GAME_STAGES.ONGOING_OPERATIONS;
     this.notifyStageChange();
   }
 
   // --------------------------------------------------------------------------
-  // BANKRUPTCY & ENDING EVALUATION (BUG 2 & BUG 3 FIXED)
+  // BANKRUPTCY & CAMPAIGN EVALUATION
   // --------------------------------------------------------------------------
   checkDefeatConditions() {
     if (this.defeatTriggered) return;
@@ -479,9 +560,6 @@ export class GameController {
       return;
     }
 
-    // Genuine Bankruptcy condition:
-    // 1. Credits fall below 0, OR
-    // 2. In Budget Negotiation, credits cannot afford even the Small Budget ($25K) and no sellable ore exists.
     const minBudget = GAME_BALANCE.restorationBudgets.small.cost;
     const cantAffordRestoration =
       this.stage === GAME_STAGES.BUDGET_NEGOTIATION &&
@@ -503,7 +581,7 @@ export class GameController {
     const netBusinessGain = this.credits - this.startingCredits;
 
     let ratingTitle = 'THE OCEAN IS NOT FOR SALE';
-    let badge = 'RESTORATION COMPLETE';
+    let badge = 'TUTORIAL COMPLETE — OPERATIONS UNLOCKED';
     let badgeClass = 'badge-green';
 
     if (this.surfaceCleaned && this.reefRestored && health >= 75 && targetMet) {
@@ -511,12 +589,12 @@ export class GameController {
       badge = 'MODEL STEWARDSHIP';
       badgeClass = 'badge-green';
     } else if (this.surfaceCleaned && this.reefRestored && !targetMet) {
-      ratingTitle = 'OCEAN PROTECTED, TARGET MISSED';
+      ratingTitle = 'OCEAN PROTECTED, TARGET IN PROGRESS';
       badge = 'CONSERVATION PRIORITY';
       badgeClass = 'badge-cyan';
     } else {
-      ratingTitle = 'FRAGILE RECOVERY';
-      badge = 'PARTIAL RESTORATION';
+      ratingTitle = 'OPERATIONS IN PROGRESS';
+      badge = 'ACTIVE EXPEDITION';
       badgeClass = 'badge-amber';
     }
 
@@ -536,29 +614,39 @@ export class GameController {
       surfacePollutionTotal: this.surfacePollutionTotal,
       reefRestored: this.reefRestored,
       oceanHealth: health,
-      rule1: this.rule1Enacted ? this.rule1Enacted.shortTitle : 'None',
-      rule2: this.rule2Enacted ? this.rule2Enacted.shortTitle : 'None'
+      rule1: this.rule1Enacted ? this.rule1Enacted.shortTitle : 'Pending',
+      rule2: this.rule2Enacted ? this.rule2Enacted.shortTitle : 'Pending'
     };
   }
 
   // --------------------------------------------------------------------------
-  // MAIN UPDATE LOOP (STAGE-AWARE)
+  // MAIN UPDATE LOOP (LOCATION & STAGE AWARE)
   // --------------------------------------------------------------------------
   update(dt, elapsed, keyInput) {
     this.stageTimer += dt;
     this.checkDefeatConditions();
     if (this.defeatTriggered) return;
 
-    if (this.stage === GAME_STAGES.UNDERWATER_MINING) {
-      this.updateUnderwaterMining(dt, elapsed, keyInput);
-    } else if (this.stage === GAME_STAGES.SURFACE_CLEANUP) {
-      this.updateSurfaceCleanup(dt, elapsed, keyInput);
+    if (this.location === PLAYER_LOCATIONS.UNDERWATER) {
+      if (
+        this.stage === GAME_STAGES.UNDERWATER_MINING ||
+        this.stage === GAME_STAGES.ONGOING_OPERATIONS ||
+        this.stage === GAME_STAGES.DIVE_RESTORATION
+      ) {
+        this.updateUnderwaterGameplay(dt, elapsed, keyInput);
+      }
+    } else if (this.location === PLAYER_LOCATIONS.SURFACE) {
+      if (this.stage === GAME_STAGES.SURFACE_CLEANUP || this.stage === GAME_STAGES.ONGOING_OPERATIONS) {
+        this.updateSurfaceGameplay(dt, elapsed, keyInput);
+      }
     }
   }
 
-  updateUnderwaterMining(dt, elapsed, keyInput) {
+  updateUnderwaterGameplay(dt, elapsed, keyInput) {
     const c = this.fleet.crawler;
-    const hasMove = Math.abs(keyInput.forward) > 0.01 || Math.abs(keyInput.turn) > 0.01;
+    const hasMove =
+      this.underwaterMode === 'CRAWLER' &&
+      (Math.abs(keyInput.forward) > 0.01 || Math.abs(keyInput.turn) > 0.01);
 
     if (hasMove) {
       c.root.rotation.y -= keyInput.turn * c.turnSpeed * dt;
@@ -602,9 +690,8 @@ export class GameController {
       }
     }
 
-    // Find nearest non-depleted deposit
     const nearestDep = this.ecosystem.deposits.find(
-      (d) => !d.depleted && Math.hypot(d.x - c.root.position.x, d.z - c.root.position.z) < 4.5
+      (d) => !d.depleted && Math.hypot(d.x - c.root.position.x, d.z - c.root.position.z) < 4.6
     );
     this.nearestDeposit = nearestDep || null;
 
@@ -616,7 +703,7 @@ export class GameController {
         if (this.ui.onWorldPopup) {
           this.ui.onWorldPopup(
             c.root.position.clone().add(new THREE.Vector3(0, 2.8, 0)),
-            'Mining Prohibited: Restoration-First Permit Active!',
+            'Mining Prohibited: Complete Restoration First!',
             'popup-gold'
           );
         }
@@ -626,7 +713,7 @@ export class GameController {
 
     if (this.isMiningActive && nearestDep && this.oreInHold < this.businessSettings.machineCapacity) {
       c.state = 'MINING';
-      this.mineTickAccum += dt;
+      this.mineTickAccum += dt * this.miningSpeedMultiplier;
       if (this.mineTickAccum >= 0.45) {
         this.mineTickAccum = 0;
 
@@ -642,7 +729,15 @@ export class GameController {
           c.capacity = this.oreInHold;
           this.totalTonsMined += extractTons;
 
-          // Visual feedback: flying nodule + sediment burst + sound
+          if (this.tutorialCompleted) {
+            this.ongoingOreSinceOil += extractTons;
+            if (this.ongoingOreSinceOil >= 20) {
+              this.ongoingOreSinceOil -= 20;
+              this.pendingExtraOilSlicks += 2;
+              this.surfaceCleaned = false;
+            }
+          }
+
           const nodStart = new THREE.Vector3(
             nearestDep.x + (Math.random() - 0.5) * 1.4,
             this.oceanEnv.getTerrainHeight(nearestDep.x, nearestDep.z) + 0.3,
@@ -658,7 +753,6 @@ export class GameController {
             m.visible = idx < visibleNodules;
           });
 
-          // Environmental consequence: damage seabed, sediment clouds, coral degradation
           this.oceanEnv.damageSectorAt(
             nearestDep.x,
             nearestDep.z,
@@ -687,7 +781,6 @@ export class GameController {
             c.state = 'IDLE';
           }
 
-          // Check Environmental Warning & Rule Change 1 trigger based on ACTUAL conditions!
           const health = this.getGlobalOceanHealth();
           if (
             !this.environmentalWarningTriggered &&
@@ -711,19 +804,19 @@ export class GameController {
     this.sound.updateMachinerySound(anyMoving, anyMining, false);
   }
 
-  updateSurfaceCleanup(dt, elapsed, keyInput) {
+  updateSurfaceGameplay(dt, elapsed, keyInput) {
     const vessel = this.fleet.surfaceVessel;
     if (!vessel || !vessel.group) return;
 
     const hasMove = Math.abs(keyInput.forward) > 0.01 || Math.abs(keyInput.turn) > 0.01;
     if (hasMove) {
-      vessel.group.rotation.y -= keyInput.turn * 1.6 * dt;
+      vessel.group.rotation.y -= keyInput.turn * 1.65 * dt;
       const forwardVec = new THREE.Vector3(0, 0, 1).applyAxisAngle(
         new THREE.Vector3(0, 1, 0),
         vessel.group.rotation.y
       );
-      const nx = Math.max(-28, Math.min(28, vessel.group.position.x + forwardVec.x * keyInput.forward * 8.5 * dt));
-      const nz = Math.max(-28, Math.min(28, vessel.group.position.z + forwardVec.z * keyInput.forward * 8.5 * dt));
+      const nx = Math.max(-32, Math.min(32, vessel.group.position.x + forwardVec.x * keyInput.forward * 9.0 * dt));
+      const nz = Math.max(-32, Math.min(32, vessel.group.position.z + forwardVec.z * keyInput.forward * 9.0 * dt));
       vessel.group.position.x = nx;
       vessel.group.position.z = nz;
     }

@@ -28,13 +28,16 @@ export class EcosystemManager {
   }
 
   buildMineralDeposits() {
-    // 5 finite mineral deposits in the connected canyon (total = 140t)
+    // 8 finite mineral deposits in the connected canyon (total = 240t)
     const depositSpecs = [
-      { id: 'dep-1', zoneId: 'nodule_fields', name: 'Central Canyon Bed', type: 'Cobalt-Rich Nodules', x: 1.5, z: 3.5, yieldPerTon: 2800, maxTons: 32, color: 0x18c8da },
-      { id: 'dep-2', zoneId: 'nodule_fields', name: 'Clarion Sandy Terrace', type: 'Polymetallic Nodules', x: -6.5, z: 1.5, yieldPerTon: 2800, maxTons: 28, color: 0x39d9c4 },
-      { id: 'dep-3', zoneId: 'nodule_fields', name: 'Pelagic Plain West', type: 'Polymetallic Nodules', x: 4.0, z: -5.5, yieldPerTon: 2800, maxTons: 28, color: 0x18c8da },
-      { id: 'dep-4', zoneId: 'nodule_fields', name: 'Reef Edge Sulfide Vein', type: 'Hydrothermal Sulfides', x: 10.5, z: 3.0, yieldPerTon: 2800, maxTons: 26, color: 0xffc83d },
-      { id: 'dep-5', zoneId: 'nodule_fields', name: 'South Ridge Deposit', type: 'Manganese-Nickel Bed', x: -3.0, z: 11.5, yieldPerTon: 2800, maxTons: 26, color: 0xff9b45 }
+      { id: 'dep-1', zoneId: 'nodule_fields', name: 'Central Canyon Bed', type: 'Cobalt-Rich Nodules', x: 1.5, z: 3.5, yieldPerTon: 2800, maxTons: 35, color: 0x18c8da },
+      { id: 'dep-2', zoneId: 'nodule_fields', name: 'Clarion Sandy Terrace', type: 'Polymetallic Nodules', x: -6.5, z: 1.5, yieldPerTon: 2800, maxTons: 30, color: 0x39d9c4 },
+      { id: 'dep-3', zoneId: 'nodule_fields', name: 'Pelagic Plain West', type: 'Polymetallic Nodules', x: 4.0, z: -5.5, yieldPerTon: 2800, maxTons: 30, color: 0x18c8da },
+      { id: 'dep-4', zoneId: 'nodule_fields', name: 'Reef Edge Sulfide Vein', type: 'Hydrothermal Sulfides', x: 10.5, z: 3.0, yieldPerTon: 2800, maxTons: 30, color: 0xffc83d },
+      { id: 'dep-5', zoneId: 'nodule_fields', name: 'South Ridge Deposit', type: 'Manganese-Nickel Bed', x: -3.0, z: 11.5, yieldPerTon: 2800, maxTons: 25, color: 0xff9b45 },
+      { id: 'dep-6', zoneId: 'nodule_fields', name: 'East Basin Motherlode', type: 'Cobalt-Rich Crust', x: 15.5, z: -3.5, yieldPerTon: 3100, maxTons: 30, color: 0x70f8ff },
+      { id: 'dep-7', zoneId: 'nodule_fields', name: 'North Canyon Shelf', type: 'Hydrothermal Sulfides', x: -12.0, z: 8.5, yieldPerTon: 3000, maxTons: 30, color: 0x39d9c4 },
+      { id: 'dep-8', zoneId: 'nodule_fields', name: 'Deep Trench Outcrop', type: 'Rare-Earth Tellurium', x: 12.0, z: 13.5, yieldPerTon: 3200, maxTons: 30, color: 0xffc83d }
     ];
 
     depositSpecs.forEach((spec) => this.createSingleDeposit(spec));

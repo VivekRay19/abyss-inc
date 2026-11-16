@@ -1,6 +1,6 @@
 # ABYSS INC. — The Ocean Is Not for Sale
 
-A streamlined 3D environmental strategy and interactive adventure game built with **Three.js** and **Vite**.
+A single-player 3D environmental strategy and interactive adventure game built with **Three.js** and **Vite**.
 
 > **Core Message:** *You can change the rules of your business, but you cannot change the laws of nature.*
 
@@ -8,9 +8,11 @@ A streamlined 3D environmental strategy and interactive adventure game built wit
 
 ## Overview
 
-In a focused 5–10 minute session, players establish a deep-sea mining company, configure three starting business parameters, deploy a compact mining machine to the ocean floor, witness real-time ecological damage, enact **two permanent in-campaign rule changes**, clean floating oil pollution on the ocean surface, negotiate a restoration budget in **Single-Player or Local Co-op**, and dive as a human diver to scrub coral and solve a water-flow logic puzzle.
+In **ABYSS INC.**, you establish a deep-sea mining company, configure three starting business parameters, deploy the **TRITON-IX** mining crawler from your industrial vessel, witness real-time ecological damage, enact **two permanent in-campaign rule changes**, clean organic floating oil slicks on the ocean surface, and restore damaged coral reefs through interactive sediment scrubbing and a water-flow logic puzzle.
 
-For full rules, roles, and mechanics, see [RULEBOOK.md](./RULEBOOK.md).
+Once the introductory story is completed (**TUTORIAL COMPLETE!**), click **CONTINUE OPERATIONS** to keep playing in persistent **Ongoing Operations** mode—freely diving (`[F]`) and surfacing (`[F]`), mining remaining seabed deposits, selling ore, and upgrading your vessel and crawler.
+
+For complete rules and mechanics, see [RULEBOOK.md](./RULEBOOK.md).
 
 ---
 
@@ -34,21 +36,21 @@ npm run preview
 
 ---
 
-## Controls
+## Single-Player Controls
 
-- **Move (Boat / Mining Machine / Diver):** `W` `A` `S` `D` (or Arrow Keys in Single-Player)
-- **Diver Up / Down:** `Space` / `Shift`
-- **Interact (Mine / Skim Oil / Restore Reef):** `E`
-- **Return to Boat / Empty Skimmer Tank:** `R`
-- **Co-op Player 2 (Marine Scientist):** Arrow Keys + `Q` (Ecological Scan)
+- **Steer Boat / Drive Crawler / Swim Diver:** `W` `A` `S` `D` or Arrow Keys
+- **Dive to Ocean Floor / Return to Surface:** `F`
+- **Interact (Mine Ore / Skim Oil / Restore Reef):** `E`
+- **Offload Ore / Empty Skimmer Tank:** `R`
+- **Diver Swim Up / Down:** `Space` / `Shift`
 
 ---
 
 ## Testing Instructions
 
-Run the automated logic & puzzle verification suite:
+Run the automated navigation, tutorial-continuation, single-player, and puzzle verification suite:
 ```bash
 node tests/verifyGameLogic.mjs
 ```
 
-See [PLAYTEST_PLAN.md](./PLAYTEST_PLAN.md) and [PLAYTEST_LOG.md](./PLAYTEST_LOG.md) for structured human playtesting scenarios and verification logs.
+See [PLAYTEST_PLAN.md](./PLAYTEST_PLAN.md) and [PLAYTEST_LOG.md](./PLAYTEST_LOG.md) for structured test scenarios and verification logs.
