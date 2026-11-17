@@ -166,6 +166,8 @@ function updateContextualObjective() {
   }
 }
 
+let welcomeExpeditionStarted = false;
+
 function handleStageTransition(stage, location) {
   hideAllModals();
   document.getElementById('hud-mining').classList.add('hidden');
@@ -173,7 +175,14 @@ function handleStageTransition(stage, location) {
 
   if (stage === GAME_STAGES.SURFACE_INTRO) {
     stageHudEl.classList.add('hidden');
-    document.getElementById('modal-intro').classList.remove('hidden');
+    const welcomeEl = document.getElementById('welcome-screen');
+    if (welcomeEl && !welcomeExpeditionStarted) {
+      welcomeEl.classList.remove('hidden', 'fade-out');
+      document.getElementById('modal-intro').classList.add('hidden');
+    } else {
+      if (welcomeEl) welcomeEl.classList.add('hidden');
+      document.getElementById('modal-intro').classList.remove('hidden');
+    }
     setObjective('Configure starting parameters & launch your company');
     setCaptainDialogue(
       "Welcome aboard! Set your company's four starting parameters and let's begin operations.",
@@ -300,8 +309,35 @@ function handleStageTransition(stage, location) {
 }
 
 // ============================================================================
-// 4. STARTING SCREEN — ALL FOUR STARTING PARAMETERS FUNCTIONAL
+// 4. WELCOME SCREEN -> STARTING PARAMETERS SCREEN (ALL 4 PARAMETERS FUNCTIONAL)
 // ============================================================================
+const welcomeScreenEl = document.getElementById('welcome-screen');
+const btnStartExpedition = document.getElementById('btn-start-expedition');
+
+if (btnStartExpedition && welcomeScreenEl) {
+  btnStartExpedition.addEventListener('click', () => {
+    sound.resume();
+    sound.playSonarPing(720);
+    welcomeExpeditionStarted = true;
+    welcomeScreenEl.classList.add('fade-out');
+
+    const introModal = document.getElementById('modal-intro');
+    const introCard = introModal ? introModal.querySelector('.modal-card') : null;
+    if (introModal) {
+      introModal.classList.remove('hidden');
+      if (introCard) {
+        introCard.classList.remove('modal-card-enter');
+        void introCard.offsetWidth;
+        introCard.classList.add('modal-card-enter');
+      }
+    }
+
+    setTimeout(() => {
+      welcomeScreenEl.classList.add('hidden');
+    }, 420);
+  });
+}
+
 let chosenCapacity = 35;
 let chosenWorkshopCap = 100;
 
@@ -808,10 +844,20 @@ document.getElementById('btn-sell-ore').addEventListener('click', () => {
   }
 });
 
-document.getElementById('btn-mute').addEventListener('click', () => {
+function handleSoundMuteToggle() {
   const muted = sound.toggleMute();
-  document.getElementById('btn-mute').textContent = muted ? '🔇' : '🔊';
-});
+  const icon = muted ? '🔇' : '🔊';
+  const hudMuteBtn = document.getElementById('btn-mute');
+  const welcomeMuteBtn = document.getElementById('btn-welcome-mute');
+  if (hudMuteBtn) hudMuteBtn.textContent = icon;
+  if (welcomeMuteBtn) welcomeMuteBtn.textContent = icon;
+}
+
+document.getElementById('btn-mute').addEventListener('click', handleSoundMuteToggle);
+const btnWelcomeMute = document.getElementById('btn-welcome-mute');
+if (btnWelcomeMute) {
+  btnWelcomeMute.addEventListener('click', handleSoundMuteToggle);
+}
 
 // ============================================================================
 // 9. MAIN ANIMATION LOOP & AUTHORITATIVE HUD REFRESH

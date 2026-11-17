@@ -24,7 +24,7 @@
       <div class="brand-pill">
         <div class="brand-logo">⚓</div>
         <div>
-          <div class="brand-name">ABYSS INC. <span style="font-size: 11px; opacity: 0.75;">v3.3.0</span></div>
+          <div class="brand-name">ABYSS INC. <span style="font-size: 11px; opacity: 0.75;">v3.4.0</span></div>
           <div class="brand-sub" id="hud-company-label">THE OCEAN IS NOT FOR SALE</div>
         </div>
       </div>
@@ -120,9 +120,98 @@
     </section>
 
     <!-- ====================================================================
-         MODAL 1: UNIFIED STARTING SCREEN (PLAYER, COMPANY & 4 STARTING PARAMETERS)
+         SCREEN 1: MAIN MENU / OPENING WELCOME SCREEN
+         Uses the exact supplied high-resolution underwater background image
          ==================================================================== -->
-    <div class="modal-backdrop" id="modal-intro">
+    <section class="welcome-screen" id="welcome-screen" aria-label="ABYSS INC. Welcome Screen">
+      <img
+        src="./Underwater Drilling Expedition.png"
+        alt="ABYSS INC. Deep-Sea Mining Expedition"
+        class="welcome-bg-image"
+      />
+      <div class="welcome-gradient-overlay"></div>
+
+      <div class="welcome-content-col">
+        <!-- 1. Game Title & Branding -->
+        <div class="welcome-branding">
+          <div class="welcome-title-row">
+            <span class="welcome-anchor-icon" aria-hidden="true">⚓</span>
+            <h1 class="welcome-title">
+              <span class="title-abyss">ABYSS</span> <span class="title-inc">INC.</span>
+            </h1>
+            <button
+              type="button"
+              class="icon-btn welcome-sound-btn"
+              id="btn-welcome-mute"
+              title="Toggle Sound"
+            >
+              🔊
+            </button>
+          </div>
+          <div class="welcome-tagline">THE OCEAN IS NOT FOR SALE</div>
+        </div>
+
+        <!-- 2. Short Introduction -->
+        <div class="welcome-intro">
+          <p class="welcome-greeting">Welcome to <strong>ABYSS INC.</strong></p>
+          <p class="welcome-lead">
+            Build your own deep-sea mining company. Explore the ocean, extract valuable minerals and manage the consequences of your decisions.
+          </p>
+        </div>
+
+        <!-- 3. Main Rules of the Game -->
+        <div class="welcome-rules-panel">
+          <div class="welcome-rules-header">THE RULES OF THE OCEAN</div>
+
+          <div class="welcome-rules-list">
+            <div class="welcome-rule-item">
+              <div class="welcome-rule-title">RULE 1 — MINE AND EARN</div>
+              <p class="welcome-rule-text">
+                Explore the ocean floor, extract minerals and earn company credits.
+              </p>
+            </div>
+
+            <div class="welcome-rule-item">
+              <div class="welcome-rule-title">RULE 2 — EVERY ACTION HAS A CONSEQUENCE</div>
+              <p class="welcome-rule-text">
+                Mining damages the seabed and can pollute the ocean. More extraction means greater environmental disturbance.
+              </p>
+            </div>
+
+            <div class="welcome-rule-item">
+              <div class="welcome-rule-title">RULE 3 — YOU CAN CHANGE TWO RULES</div>
+              <p class="welcome-rule-text">
+                During the campaign, you can change a maximum of two business rules. Your decisions will affect how your company operates.
+              </p>
+            </div>
+
+            <div class="welcome-rule-item">
+              <div class="welcome-rule-title">RULE 4 — RESTORE WHAT YOU DAMAGE</div>
+              <p class="welcome-rule-text">
+                Clean floating pollution, repair damaged coral reefs and help the ocean recover.
+              </p>
+            </div>
+          </div>
+
+          <div class="welcome-nature-law">
+            <strong>You can change the rules of your business, but you cannot change the laws of nature.</strong>
+          </div>
+        </div>
+
+        <!-- 4. Primary Action Button -->
+        <div class="welcome-actions">
+          <button type="button" class="btn-start-expedition" id="btn-start-expedition">
+            <span>START EXPEDITION</span>
+            <span class="btn-expedition-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 2 / MODAL 1: STARTING PARAMETERS SCREEN (PLAYER, COMPANY & 4 PARAMETERS)
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="modal-intro">
       <div class="modal-card modal-wide">
         <div class="modal-badge">WELCOME ABOARD — STARTING PARAMETERS</div>
         <h1>ABYSS INC.</h1>

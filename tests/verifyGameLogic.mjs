@@ -238,10 +238,29 @@ function createMockFleet() {
 }
 
 // ============================================================================
-// TEST 4: UI SIMPLIFICATION & SINGLE-PLAYER CHECKS
+// TEST 4: MAIN MENU / FIRST SCREEN, UI SIMPLIFICATION & SINGLE-PLAYER CHECKS
 // ============================================================================
 {
   const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  // Main Menu / First Screen verification
+  assert.equal(html.includes('id="welcome-screen"'), true, 'Welcome screen must exist');
+  assert.equal(html.includes('./Underwater Drilling Expedition.png'), true, 'Exact supplied background image must be used');
+  assert.equal(html.includes('THE OCEAN IS NOT FOR SALE'), true, 'Tagline must be present');
+  assert.equal(html.includes('Welcome to <strong>ABYSS INC.</strong>'), true, 'Intro greeting must be present');
+  assert.equal(html.includes('THE RULES OF THE OCEAN'), true, 'Rules panel header must be present');
+  assert.equal(html.includes('RULE 1 — MINE AND EARN'), true, 'Rule 1 must be present');
+  assert.equal(html.includes('RULE 2 — EVERY ACTION HAS A CONSEQUENCE'), true, 'Rule 2 must be present');
+  assert.equal(html.includes('RULE 3 — YOU CAN CHANGE TWO RULES'), true, 'Rule 3 must be present');
+  assert.equal(html.includes('RULE 4 — RESTORE WHAT YOU DAMAGE'), true, 'Rule 4 must be present');
+  assert.equal(
+    html.includes('You can change the rules of your business, but you cannot change the laws of nature.'),
+    true,
+    'Core ecological law statement must be present'
+  );
+  assert.equal(html.includes('id="btn-start-expedition"'), true, 'START EXPEDITION button must exist');
+  assert.equal(html.includes('START EXPEDITION'), true, 'START EXPEDITION label must exist');
+
+  // Existing parameter screen & simplified HUD verification
   assert.equal(html.includes('E — Mine Ore'), true);
   assert.equal(html.includes('F — Return to Surface'), true);
   assert.equal(html.includes('btn-back-restoration'), true);
@@ -249,4 +268,4 @@ function createMockFleet() {
   assert.equal(html.includes('mode-coop'), false);
 }
 
-console.log('ALL 4 STARTING PARAMETERS, PUZZLE VARIETY, BACK BUTTON, RULES & UI TESTS PASSED!');
+console.log('ALL MAIN MENU, 4 STARTING PARAMETERS, PUZZLE VARIETY, BACK BUTTON, RULES & UI TESTS PASSED!');
