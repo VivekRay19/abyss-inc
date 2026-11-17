@@ -238,27 +238,55 @@ function createMockFleet() {
 }
 
 // ============================================================================
-// TEST 4: MAIN MENU / FIRST SCREEN, UI SIMPLIFICATION & SINGLE-PLAYER CHECKS
+// TEST 4: 5-SCREEN OPENING EXPERIENCE, SURFACE WELCOME & UI SIMPLIFICATION
 // ============================================================================
 {
   const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  // Main Menu / First Screen verification
-  assert.equal(html.includes('id="welcome-screen"'), true, 'Welcome screen must exist');
+  // Screen 1: Cinematic minimal title screen verification
+  assert.equal(html.includes('id="welcome-screen"'), true, 'Screen 1 welcome screen must exist');
   assert.equal(html.includes('./Underwater Drilling Expedition.png'), true, 'Exact supplied background image must be used');
-  assert.equal(html.includes('THE OCEAN IS NOT FOR SALE'), true, 'Tagline must be present');
-  assert.equal(html.includes('Welcome to <strong>ABYSS INC.</strong>'), true, 'Intro greeting must be present');
-  assert.equal(html.includes('THE RULES OF THE OCEAN'), true, 'Rules panel header must be present');
-  assert.equal(html.includes('RULE 1 — MINE AND EARN'), true, 'Rule 1 must be present');
-  assert.equal(html.includes('RULE 2 — EVERY ACTION HAS A CONSEQUENCE'), true, 'Rule 2 must be present');
-  assert.equal(html.includes('RULE 3 — YOU CAN CHANGE TWO RULES'), true, 'Rule 3 must be present');
-  assert.equal(html.includes('RULE 4 — RESTORE WHAT YOU DAMAGE'), true, 'Rule 4 must be present');
-  assert.equal(
-    html.includes('You can change the rules of your business, but you cannot change the laws of nature.'),
-    true,
-    'Core ecological law statement must be present'
-  );
+  assert.equal(html.includes('id="welcome-ambient-canvas"'), true, 'Ambient underwater particles/bubbles canvas must exist');
   assert.equal(html.includes('id="btn-start-expedition"'), true, 'START EXPEDITION button must exist');
   assert.equal(html.includes('START EXPEDITION'), true, 'START EXPEDITION label must exist');
+  assert.equal(html.includes('THE RULES OF THE OCEAN'), false, 'Four-rules panel must be removed from Screen 1');
+
+  // Screen 3, 4 & 5: Surface Welcome, Captain Harlin Briefing & Let's Start Mining
+  assert.equal(html.includes('CAPTAIN HARLIN'), true, 'Captain Harlin dialogue box must exist');
+  assert.equal(html.includes('id="btn-captain-continue"'), true, 'Captain dialogue Continue button must exist');
+  assert.equal(html.includes('1. MINE'), true, 'Briefing item 1. MINE must exist');
+  assert.equal(html.includes('2. RETURN'), true, 'Briefing item 2. RETURN must exist');
+  assert.equal(html.includes('3. PROTECT'), true, 'Briefing item 3. PROTECT must exist');
+  assert.equal(html.includes("LET'S START MINING"), true, "LET'S START MINING button must exist");
+  assert.equal(html.includes('id="btn-lets-start-mining"'), true, "btn-lets-start-mining ID must exist");
+
+  // Verify Screen 2 -> Screen 3 (deferDive: true) -> Screen 5 (diveToOceanFloor) state transitions
+  const eco = createMockEcosystem();
+  const fleet = createMockFleet();
+  const game = new GameController(mockOceanEnv, eco, fleet, mockSound, {});
+  const res = game.startGameWithParameters({
+    playerName: 'Elena',
+    companyName: 'BlueHorizon',
+    machineCapacity: 50,
+    workshopCapacity: 150,
+    oreSellingPrice: 3500,
+    extractionTarget: 80,
+    deferDive: true
+  });
+  assert.equal(res.ok, true);
+  assert.equal(game.stage, GAME_STAGES.SURFACE_WELCOME, 'Confirming Screen 2 enters Screen 3 SURFACE_WELCOME on ocean surface');
+  assert.equal(game.location, PLAYER_LOCATIONS.SURFACE, 'Player starts on the ocean surface before diving');
+  assert.equal(game.diveCount, 0, 'Mining machine has not dived yet during surface briefing');
+
+  // Screen 5: Clicking LET'S START MINING triggers deployment
+  const diveRes = game.diveToOceanFloor(false);
+  assert.equal(diveRes.ok, true);
+  assert.equal(game.stage, GAME_STAGES.DEPLOYMENT);
+  assert.equal(game.location, PLAYER_LOCATIONS.DIVING);
+  assert.equal(game.diveCount, 1);
+
+  game.completeDiveTransition();
+  assert.equal(game.stage, GAME_STAGES.UNDERWATER_MINING);
+  assert.equal(game.location, PLAYER_LOCATIONS.UNDERWATER);
 
   // Existing parameter screen & simplified HUD verification
   assert.equal(html.includes('E — Mine Ore'), true);
@@ -268,4 +296,4 @@ function createMockFleet() {
   assert.equal(html.includes('mode-coop'), false);
 }
 
-console.log('ALL MAIN MENU, 4 STARTING PARAMETERS, PUZZLE VARIETY, BACK BUTTON, RULES & UI TESTS PASSED!');
+console.log('ALL 5 OPENING SCREENS, 4 STARTING PARAMETERS, PUZZLE VARIETY, BACK BUTTON, RULES & UI TESTS PASSED!');

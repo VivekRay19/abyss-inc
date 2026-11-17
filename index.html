@@ -24,7 +24,7 @@
       <div class="brand-pill">
         <div class="brand-logo">⚓</div>
         <div>
-          <div class="brand-name">ABYSS INC. <span style="font-size: 11px; opacity: 0.75;">v3.4.0</span></div>
+          <div class="brand-name">ABYSS INC. <span style="font-size: 11px; opacity: 0.75;">v3.5.0</span></div>
           <div class="brand-sub" id="hud-company-label">THE OCEAN IS NOT FOR SALE</div>
         </div>
       </div>
@@ -106,105 +106,79 @@
     </aside>
 
     <!-- ====================================================================
-         CAPTAIN HARLAN DIALOGUE CARD (SHOWN ON SURFACE / STORY TRANSITIONS ONLY,
-         HIDDEN DURING UNDERWATER MINING)
+         CAPTAIN HARLIN DIALOGUE CARD & SURFACE BRIEFING / START MINING OVERLAY
          ==================================================================== -->
-    <section class="captain-card" id="captain-card">
-      <div class="captain-avatar">👨‍✈️</div>
-      <div class="captain-body">
-        <div class="captain-name">CAPTAIN HARLAN</div>
-        <p class="captain-text" id="captain-text">
-          Welcome aboard, new recruit! Ready to start your very own deep-sea mining company?
-        </p>
+    <section class="surface-briefing-overlay hidden" id="surface-briefing-overlay">
+      <!-- Screen 4: Three compact visual instruction pills with icons -->
+      <div class="briefing-pills-row hidden" id="surface-briefing-strip">
+        <div class="briefing-pill">
+          <div class="briefing-pill-icon">⛏️</div>
+          <div class="briefing-pill-body">
+            <div class="briefing-pill-title">1. MINE</div>
+            <p class="briefing-pill-text">Find mineral deposits and press E to extract ore.</p>
+          </div>
+        </div>
+
+        <div class="briefing-pill">
+          <div class="briefing-pill-icon">⚓</div>
+          <div class="briefing-pill-body">
+            <div class="briefing-pill-title">2. RETURN</div>
+            <p class="briefing-pill-text">Press F to return to the surface when required.</p>
+          </div>
+        </div>
+
+        <div class="briefing-pill">
+          <div class="briefing-pill-icon">🪸</div>
+          <div class="briefing-pill-body">
+            <div class="briefing-pill-title">3. PROTECT</div>
+            <p class="briefing-pill-text">Mining affects the seabed and ocean. Your decisions have consequences.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 5: Prominent Start Mining Button -->
+      <div class="start-mining-action-wrap hidden" id="start-mining-action-wrap">
+        <button type="button" class="btn-lets-start-mining" id="btn-lets-start-mining">
+          LET'S START MINING
+        </button>
       </div>
     </section>
 
+    <section class="captain-card" id="captain-card">
+      <div class="captain-avatar">👨‍✈️</div>
+      <div class="captain-body">
+        <div class="captain-name">CAPTAIN HARLIN</div>
+        <p class="captain-text" id="captain-text">
+          Welcome aboard! I'm Captain Harlin.
+        </p>
+      </div>
+      <button type="button" class="btn-captain-continue hidden" id="btn-captain-continue">
+        Continue →
+      </button>
+    </section>
+
     <!-- ====================================================================
-         SCREEN 1: MAIN MENU / OPENING WELCOME SCREEN
-         Uses the exact supplied high-resolution underwater background image
+         SCREEN 1: CINEMATIC TITLE SCREEN
+         Uses the exact supplied high-resolution underwater background image.
+         Displays ONLY the game title "ABYSS INC." and "START EXPEDITION".
          ==================================================================== -->
-    <section class="welcome-screen" id="welcome-screen" aria-label="ABYSS INC. Welcome Screen">
+    <section class="welcome-screen" id="welcome-screen" aria-label="ABYSS INC. Title Screen">
       <img
         src="./Underwater Drilling Expedition.png"
         alt="ABYSS INC. Deep-Sea Mining Expedition"
         class="welcome-bg-image"
       />
-      <div class="welcome-gradient-overlay"></div>
+      <div class="welcome-light-rays" aria-hidden="true"></div>
+      <canvas id="welcome-ambient-canvas" class="welcome-ambient-canvas" aria-hidden="true"></canvas>
+      <div class="welcome-vignette" aria-hidden="true"></div>
 
-      <div class="welcome-content-col">
-        <!-- 1. Game Title & Branding -->
-        <div class="welcome-branding">
-          <div class="welcome-title-row">
-            <span class="welcome-anchor-icon" aria-hidden="true">⚓</span>
-            <h1 class="welcome-title">
-              <span class="title-abyss">ABYSS</span> <span class="title-inc">INC.</span>
-            </h1>
-            <button
-              type="button"
-              class="icon-btn welcome-sound-btn"
-              id="btn-welcome-mute"
-              title="Toggle Sound"
-            >
-              🔊
-            </button>
-          </div>
-          <div class="welcome-tagline">THE OCEAN IS NOT FOR SALE</div>
-        </div>
-
-        <!-- 2. Short Introduction -->
-        <div class="welcome-intro">
-          <p class="welcome-greeting">Welcome to <strong>ABYSS INC.</strong></p>
-          <p class="welcome-lead">
-            Build your own deep-sea mining company. Explore the ocean, extract valuable minerals and manage the consequences of your decisions.
-          </p>
-        </div>
-
-        <!-- 3. Main Rules of the Game -->
-        <div class="welcome-rules-panel">
-          <div class="welcome-rules-header">THE RULES OF THE OCEAN</div>
-
-          <div class="welcome-rules-list">
-            <div class="welcome-rule-item">
-              <div class="welcome-rule-title">RULE 1 — MINE AND EARN</div>
-              <p class="welcome-rule-text">
-                Explore the ocean floor, extract minerals and earn company credits.
-              </p>
-            </div>
-
-            <div class="welcome-rule-item">
-              <div class="welcome-rule-title">RULE 2 — EVERY ACTION HAS A CONSEQUENCE</div>
-              <p class="welcome-rule-text">
-                Mining damages the seabed and can pollute the ocean. More extraction means greater environmental disturbance.
-              </p>
-            </div>
-
-            <div class="welcome-rule-item">
-              <div class="welcome-rule-title">RULE 3 — YOU CAN CHANGE TWO RULES</div>
-              <p class="welcome-rule-text">
-                During the campaign, you can change a maximum of two business rules. Your decisions will affect how your company operates.
-              </p>
-            </div>
-
-            <div class="welcome-rule-item">
-              <div class="welcome-rule-title">RULE 4 — RESTORE WHAT YOU DAMAGE</div>
-              <p class="welcome-rule-text">
-                Clean floating pollution, repair damaged coral reefs and help the ocean recover.
-              </p>
-            </div>
-          </div>
-
-          <div class="welcome-nature-law">
-            <strong>You can change the rules of your business, but you cannot change the laws of nature.</strong>
-          </div>
-        </div>
-
-        <!-- 4. Primary Action Button -->
-        <div class="welcome-actions">
-          <button type="button" class="btn-start-expedition" id="btn-start-expedition">
-            <span>START EXPEDITION</span>
-            <span class="btn-expedition-arrow" aria-hidden="true">→</span>
-          </button>
-        </div>
+      <div class="welcome-center-hero">
+        <h1 class="welcome-title">
+          <span class="title-abyss">ABYSS</span> <span class="title-inc">INC.</span>
+        </h1>
+        <button type="button" class="btn-start-expedition" id="btn-start-expedition">
+          START EXPEDITION
+        </button>
       </div>
     </section>
 

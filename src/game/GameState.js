@@ -193,7 +193,7 @@ export class GameController {
     this.companyName = (companyName || 'DeepBlue Co.').trim() || 'DeepBlue Co.';
   }
 
-  confirmBusinessSettings(capacity, sellingPrice, extractionTarget, workshopCapacity = 100) {
+  confirmBusinessSettings(capacity, sellingPrice, extractionTarget, workshopCapacity = 100, deferDive = false) {
     const cap = Number(capacity);
     const wCap = Number(workshopCapacity);
     const price = Number(sellingPrice);
@@ -222,6 +222,14 @@ export class GameController {
     this.fleet.crawler.maxCapacity = cap;
     this.fleet.crawler.speed = 6.8 * this.crawlerSpeedMultiplier;
 
+    if (deferDive) {
+      this.location = PLAYER_LOCATIONS.SURFACE;
+      this.stage = GAME_STAGES.SURFACE_WELCOME;
+      this.stageTimer = 0;
+      this.notifyStageChange();
+      return { ok: true, stage: this.stage };
+    }
+
     return this.diveToOceanFloor();
   }
 
@@ -231,14 +239,16 @@ export class GameController {
     machineCapacity,
     workshopCapacity,
     oreSellingPrice,
-    extractionTarget
+    extractionTarget,
+    deferDive = false
   }) {
     this.setCompanyInfo(playerName, companyName);
     return this.confirmBusinessSettings(
       machineCapacity,
       oreSellingPrice,
       extractionTarget,
-      workshopCapacity
+      workshopCapacity,
+      deferDive
     );
   }
 
@@ -267,6 +277,7 @@ export class GameController {
     if (this.location !== PLAYER_LOCATIONS.SURFACE) return false;
     if (
       this.stage === GAME_STAGES.SURFACE_INTRO ||
+      this.stage === GAME_STAGES.SURFACE_WELCOME ||
       this.stage === GAME_STAGES.RULE_CHANGE_1 ||
       this.stage === GAME_STAGES.RULE_CHANGE_2 ||
       this.stage === GAME_STAGES.BUDGET_NEGOTIATION ||

@@ -58,9 +58,10 @@ if (fleet.restorationDrone && fleet.restorationDrone.root) fleet.restorationDron
 const lastCrawlerSeabedPos = new THREE.Vector3(-2.5, oceanEnv.getTerrainHeight(-2.5, -1.5), -1.5);
 
 function placeCrawlerOnBoatDeck() {
-  const vesselPos = fleet.surfaceVessel.group.position;
+  const vesselGroup = fleet.surfaceVessel.group;
+  const vesselPos = vesselGroup.position;
   fleet.crawler.root.position.set(vesselPos.x, vesselPos.y + 1.25, vesselPos.z - 2.2);
-  fleet.crawler.root.rotation.set(0, Math.PI, 0);
+  fleet.crawler.root.rotation.set(vesselGroup.rotation.x, Math.PI, vesselGroup.rotation.z);
 }
 placeCrawlerOnBoatDeck();
 
@@ -167,9 +168,95 @@ function updateContextualObjective() {
 }
 
 let welcomeExpeditionStarted = false;
+let surfaceIntroStep = 0;
+
+const SURFACE_INTRO_STEPS = [
+  {
+    screen: 3,
+    showBriefingPills: false,
+    showStartMiningBtn: false,
+    objective: 'Welcome Aboard — Meet Captain Harlin on the Ocean Surface',
+    dialogue: "Welcome aboard! I'm Captain Harlin."
+  },
+  {
+    screen: 3,
+    showBriefingPills: false,
+    showStartMiningBtn: false,
+    objective: 'Welcome Aboard — Meet Captain Harlin on the Ocean Surface',
+    dialogue:
+      "Your mining company is ready. We'll explore the ocean floor, extract valuable minerals and build our business."
+  },
+  {
+    screen: 4,
+    showBriefingPills: true,
+    showStartMiningBtn: false,
+    objective: 'Expedition Briefing — Review Operations with Captain Harlin',
+    dialogue: 'Your job is simple. Find the mineral deposits and extract the ore.'
+  },
+  {
+    screen: 4,
+    showBriefingPills: true,
+    showStartMiningBtn: false,
+    objective: 'Expedition Briefing — Review Operations with Captain Harlin',
+    dialogue: 'Just remember, every mining operation affects the ocean.'
+  },
+  {
+    screen: 4,
+    showBriefingPills: true,
+    showStartMiningBtn: false,
+    objective: 'Expedition Briefing — Review Operations with Captain Harlin',
+    dialogue:
+      'You can change up to two business rules during your campaign, but you cannot change the laws of nature.'
+  },
+  {
+    screen: 5,
+    showBriefingPills: true,
+    showStartMiningBtn: true,
+    objective: "Ready for Deployment — Click Let's Start Mining",
+    dialogue: "Everything is ready. Let's get our first mining operation started!"
+  }
+];
+
+function renderSurfaceIntroStep() {
+  const stepData =
+    SURFACE_INTRO_STEPS[Math.min(surfaceIntroStep, SURFACE_INTRO_STEPS.length - 1)];
+  const overlayEl = document.getElementById('surface-briefing-overlay');
+  const pillsEl = document.getElementById('surface-briefing-strip');
+  const startWrapEl = document.getElementById('start-mining-action-wrap');
+  const continueBtnEl = document.getElementById('btn-captain-continue');
+
+  if (overlayEl) {
+    overlayEl.classList.toggle(
+      'hidden',
+      !(stepData.showBriefingPills || stepData.showStartMiningBtn)
+    );
+  }
+  if (pillsEl) {
+    pillsEl.classList.toggle('hidden', !stepData.showBriefingPills);
+  }
+  if (startWrapEl) {
+    startWrapEl.classList.toggle('hidden', !stepData.showStartMiningBtn);
+  }
+  if (continueBtnEl) {
+    continueBtnEl.classList.toggle('hidden', stepData.showStartMiningBtn);
+  }
+
+  captainCardEl.classList.add('centered-intro');
+  setObjective(stepData.objective);
+  setCaptainDialogue(stepData.dialogue, true);
+}
+
+function hideSurfaceIntroSequenceUI() {
+  const overlayEl = document.getElementById('surface-briefing-overlay');
+  const continueBtnEl = document.getElementById('btn-captain-continue');
+  if (overlayEl) overlayEl.classList.add('hidden');
+  if (continueBtnEl) continueBtnEl.classList.add('hidden');
+  captainCardEl.classList.remove('centered-intro');
+}
 
 function handleStageTransition(stage, location) {
   hideAllModals();
+  hideSurfaceIntroSequenceUI();
   document.getElementById('hud-mining').classList.add('hidden');
   document.getElementById('hud-cleanup').classList.add('hidden');
 
@@ -184,14 +271,20 @@ function handleStageTransition(stage, location) {
       document.getElementById('modal-intro').classList.remove('hidden');
     }
     setObjective('Configure starting parameters & launch your company');
-    setCaptainDialogue(
-      "Welcome aboard! Set your company's four starting parameters and let's begin operations.",
-      true
-    );
+    setCaptainDialogue('', false);
     return;
   }
 
   document.getElementById('hud-company-label').textContent = `${game.companyName} • ${game.playerName}`;
+
+  if (stage === GAME_STAGES.SURFACE_WELCOME) {
+    stageHudEl.classList.add('hidden');
+    diver.root.visible = false;
+    placeCrawlerOnBoatDeck();
+    surfaceIntroStep = 0;
+    renderSurfaceIntroStep();
+    return;
+  }
 
   if (stage === GAME_STAGES.DEPLOYMENT) {
     stageHudEl.classList.add('hidden');
@@ -203,7 +296,7 @@ function handleStageTransition(stage, location) {
     );
     setCaptainDialogue(
       game.diveCount === 1
-        ? "Everything is ready. Let's send our mining machine down to the ocean floor!"
+        ? "Everything is ready. Let's get our first mining operation started!"
         : 'Lowering mining machine to the seabed.',
       true
     );
@@ -309,10 +402,70 @@ function handleStageTransition(stage, location) {
 }
 
 // ============================================================================
-// 4. WELCOME SCREEN -> STARTING PARAMETERS SCREEN (ALL 4 PARAMETERS FUNCTIONAL)
+// 4. SCREEN 1 (TITLE) -> SCREEN 2 (PARAMETERS) -> SCREENS 3-5 (SURFACE BRIEFING)
 // ============================================================================
 const welcomeScreenEl = document.getElementById('welcome-screen');
 const btnStartExpedition = document.getElementById('btn-start-expedition');
+const ambientCanvas = document.getElementById('welcome-ambient-canvas');
+
+// Peaceful ambient underwater particles & rising bubbles for Screen 1
+const ambientParticles = [];
+if (ambientCanvas) {
+  for (let i = 0; i < 38; i++) {
+    const isBubble = i < 16;
+    ambientParticles.push({
+      x: Math.random(),
+      y: Math.random(),
+      r: isBubble ? 2.2 + Math.random() * 4.2 : 1.1 + Math.random() * 1.8,
+      speedY: isBubble ? 0.018 + Math.random() * 0.026 : 0.004 + Math.random() * 0.009,
+      driftX: (Math.random() - 0.5) * 0.008,
+      phase: Math.random() * Math.PI * 2,
+      alpha: isBubble ? 0.22 + Math.random() * 0.32 : 0.18 + Math.random() * 0.28,
+      isBubble
+    });
+  }
+}
+
+function updateWelcomeAmbientCanvas(dt, elapsed) {
+  if (!ambientCanvas || welcomeExpeditionStarted) return;
+  const w = window.innerWidth || 1280;
+  const h = window.innerHeight || 720;
+  if (ambientCanvas.width !== w || ambientCanvas.height !== h) {
+    ambientCanvas.width = w;
+    ambientCanvas.height = h;
+  }
+  const ctx = ambientCanvas.getContext('2d');
+  if (!ctx) return;
+  ctx.clearRect(0, 0, w, h);
+
+  for (const p of ambientParticles) {
+    p.y -= p.speedY * dt;
+    p.x += Math.sin(elapsed * 0.9 + p.phase) * 0.00025 + p.driftX * dt;
+    if (p.y < -0.04) {
+      p.y = 1.04;
+      p.x = Math.random();
+    }
+    if (p.x < -0.02) p.x = 1.02;
+    if (p.x > 1.02) p.x = -0.02;
+
+    const px = p.x * w;
+    const py = p.y * h;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, p.r, 0, Math.PI * 2);
+    if (p.isBubble) {
+      ctx.strokeStyle = `rgba(180, 248, 255, ${p.alpha})`;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = `rgba(150, 240, 255, ${p.alpha * 0.28})`;
+      ctx.fill();
+    } else {
+      ctx.fillStyle = `rgba(195, 250, 255, ${p.alpha})`;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
 
 if (btnStartExpedition && welcomeScreenEl) {
   btnStartExpedition.addEventListener('click', () => {
@@ -334,7 +487,7 @@ if (btnStartExpedition && welcomeScreenEl) {
 
     setTimeout(() => {
       welcomeScreenEl.classList.add('hidden');
-    }, 420);
+    }, 500);
   });
 }
 
@@ -382,16 +535,40 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
   const priceVal = Number(sliderPrice.value);
   const targetVal = Number(sliderTarget.value);
 
+  // Move to Screen 3 (Ocean Surface Welcome Aboard) before deploying underwater
   game.startGameWithParameters({
     playerName: pName,
     companyName: cName,
     machineCapacity: chosenCapacity,
     workshopCapacity: chosenWorkshopCap,
     oreSellingPrice: priceVal,
-    extractionTarget: targetVal
+    extractionTarget: targetVal,
+    deferDive: true
   });
   refreshStageHUD();
 });
+
+const btnCaptainContinue = document.getElementById('btn-captain-continue');
+if (btnCaptainContinue) {
+  btnCaptainContinue.addEventListener('click', () => {
+    sound.resume();
+    if (game.stage !== GAME_STAGES.SURFACE_WELCOME) return;
+    if (surfaceIntroStep < SURFACE_INTRO_STEPS.length - 1) {
+      surfaceIntroStep++;
+      sound.playSonarPing(660);
+      renderSurfaceIntroStep();
+    }
+  });
+}
+
+const btnLetsStartMining = document.getElementById('btn-lets-start-mining');
+if (btnLetsStartMining) {
+  btnLetsStartMining.addEventListener('click', () => {
+    sound.resume();
+    hideSurfaceIntroSequenceUI();
+    game.diveToOceanFloor(false);
+  });
+}
 
 // ============================================================================
 // 5. TWO-RULE CHANGING MECHANISM (ACCESSIBLE & CAPPED AT 2)
@@ -450,11 +627,11 @@ document.getElementById('btn-confirm-rule').addEventListener('click', () => {
 
 // Allow clicking Rule 1 / Rule 2 badges in the HUD if still Pending
 document.getElementById('rule1-badge').addEventListener('click', () => {
-  if (game.stage === GAME_STAGES.SURFACE_INTRO) return;
+  if (game.stage === GAME_STAGES.SURFACE_INTRO || game.stage === GAME_STAGES.SURFACE_WELCOME) return;
   if (!game.rule1Enacted) openRuleModal('extraction');
 });
 document.getElementById('rule2-badge').addEventListener('click', () => {
-  if (game.stage === GAME_STAGES.SURFACE_INTRO) return;
+  if (game.stage === GAME_STAGES.SURFACE_INTRO || game.stage === GAME_STAGES.SURFACE_WELCOME) return;
   if (!game.rule2Enacted) openRuleModal('sales');
 });
 
@@ -900,22 +1077,47 @@ function refreshStageHUD() {
 function updateDeploymentOrAscent() {
   const vesselPos = fleet.surfaceVessel.group.position;
   const targetX = game.diveCount === 1 ? vesselPos.x + 2.5 : lastCrawlerSeabedPos.x;
-  const targetZ = game.diveCount === 1 ? vesselPos.z - 2.0 : lastCrawlerSeabedPos.z;
+  const targetZ = game.diveCount === 1 ? vesselPos.z - 5.2 : lastCrawlerSeabedPos.z;
   const landY = oceanEnv.getTerrainHeight(targetX, targetZ);
 
   if (game.location === PLAYER_LOCATIONS.DIVING) {
-    const duration = game.diveCount === 1 ? 3.8 : 2.2;
+    const duration = game.diveCount === 1 ? 4.4 : 2.2;
     const t = Math.min(1, game.stageTimer / duration);
-    const curX = THREE.MathUtils.lerp(vesselPos.x, targetX, t);
-    const curZ = THREE.MathUtils.lerp(vesselPos.z - 2.2, targetZ, t);
-    const curY = THREE.MathUtils.lerp(vesselPos.y + 1.25, landY, t);
-    fleet.crawler.root.position.set(curX, curY, curZ);
 
-    if (fleet.surfaceVessel.craneBoom) {
-      fleet.surfaceVessel.craneBoom.rotation.y = Math.sin(t * Math.PI) * 0.55;
+    if (game.diveCount === 1 && t < 0.28) {
+      // Phase 1: Crane lifts mining machine off deck and moves it toward stern deployment point
+      const p1 = t / 0.28;
+      const ease1 = p1 * p1 * (3 - 2 * p1);
+      const curX = THREE.MathUtils.lerp(vesselPos.x, targetX, ease1 * 0.45);
+      const curZ = THREE.MathUtils.lerp(vesselPos.z - 2.2, targetZ, ease1);
+      const curY = THREE.MathUtils.lerp(vesselPos.y + 1.25, vesselPos.y + 2.35, Math.sin(ease1 * Math.PI * 0.5));
+      fleet.crawler.root.position.set(curX, curY, curZ);
+      fleet.crawler.root.rotation.set(0, Math.PI + ease1 * 0.35, 0);
+
+      if (fleet.surfaceVessel.craneBoom) {
+        fleet.surfaceVessel.craneBoom.rotation.y = ease1 * 0.42;
+      }
+      camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 0.8, 0));
+      camRig.desiredPos.copy(vesselPos).add(new THREE.Vector3(12, 7.5, -12.5));
+    } else {
+      // Phase 2: Crane lowers the mining machine into the water and camera follows descent to seabed
+      const p2 = game.diveCount === 1 ? (t - 0.28) / 0.72 : t;
+      const ease2 = p2 * p2 * (3 - 2 * p2);
+      const startX = game.diveCount === 1 ? THREE.MathUtils.lerp(vesselPos.x, targetX, 0.45) : vesselPos.x;
+      const startZ = game.diveCount === 1 ? targetZ : vesselPos.z - 2.2;
+      const startY = game.diveCount === 1 ? vesselPos.y + 2.35 : vesselPos.y + 1.25;
+
+      const curX = THREE.MathUtils.lerp(startX, targetX, ease2);
+      const curZ = THREE.MathUtils.lerp(startZ, targetZ, ease2);
+      const curY = THREE.MathUtils.lerp(startY, landY, ease2);
+      fleet.crawler.root.position.set(curX, curY, curZ);
+
+      if (fleet.surfaceVessel.craneBoom) {
+        fleet.surfaceVessel.craneBoom.rotation.y = Math.sin((1 - ease2 * 0.5) * Math.PI * 0.5) * 0.42;
+      }
+      camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 1, 0));
+      camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(10, 8, 12));
     }
-    camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 1, 0));
-    camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(10, 8, 12));
 
     if (t >= 1) {
       game.completeDiveTransition();
@@ -946,6 +1148,8 @@ function animate() {
   const dt = Math.min(0.05, clock.getDelta());
   const elapsed = clock.getElapsedTime();
 
+  updateWelcomeAmbientCanvas(dt, elapsed);
+
   const fwd =
     (keysDown.has('w') || keysDown.has('arrowup') ? 1 : 0) -
     (keysDown.has('s') || keysDown.has('arrowdown') ? 1 : 0);
@@ -964,6 +1168,12 @@ function animate() {
   } else if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
     camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 1, 0));
     camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(11, 10, 14));
+  } else if (game.stage === GAME_STAGES.SURFACE_WELCOME) {
+    placeCrawlerOnBoatDeck();
+    const vPos = fleet.surfaceVessel.group.position;
+    const gentleOrbitX = Math.sin(elapsed * 0.25) * 1.1;
+    camRig.desiredTarget.copy(vPos).add(new THREE.Vector3(0, 1.85, -1.2));
+    camRig.desiredPos.copy(vPos).add(new THREE.Vector3(11.2 + gentleOrbitX, 5.8, -11.8));
   } else {
     placeCrawlerOnBoatDeck();
     const vPos = fleet.surfaceVessel.group.position;

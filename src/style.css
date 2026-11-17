@@ -179,8 +179,8 @@ body {
   position: fixed;
   bottom: 18px;
   left: 18px;
-  z-index: 20;
-  max-width: 460px;
+  z-index: 25;
+  max-width: 480px;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -190,6 +190,18 @@ body {
   border-radius: 16px;
   backdrop-filter: blur(12px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  transition: left 0.35s ease, transform 0.35s ease, max-width 0.35s ease;
+}
+
+.captain-card.centered-intro {
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 620px);
+  max-width: 620px;
+}
+
+.captain-body {
+  flex: 1;
 }
 
 .captain-avatar {
@@ -824,7 +836,7 @@ button:disabled {
 }
 
 /* ============================================================================
-   MAIN MENU / FIRST WELCOME SCREEN
+   SCREEN 1: CINEMATIC MINIMAL TITLE SCREEN
    ============================================================================ */
 .welcome-screen {
   position: fixed;
@@ -835,10 +847,10 @@ button:disabled {
   overflow: hidden;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: clamp(16px, 2.6vh, 36px) clamp(24px, 4.2vw, 68px);
+  justify-content: center;
+  padding-bottom: 16vh;
   background-color: var(--deep-navy);
-  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.42s ease;
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.5s ease;
 }
 
 .welcome-screen.fade-out {
@@ -856,71 +868,74 @@ button:disabled {
   z-index: 1;
   user-select: none;
   pointer-events: none;
+  transform-origin: center center;
+  animation: gentleWaterDrift 18s ease-in-out infinite alternate;
 }
 
-.welcome-gradient-overlay {
+.welcome-light-rays {
   position: absolute;
-  inset: 0;
+  inset: -10%;
   z-index: 2;
   pointer-events: none;
   background:
-    linear-gradient(
-      90deg,
-      rgba(4, 15, 26, 0.86) 0%,
-      rgba(6, 22, 38, 0.72) 32%,
-      rgba(7, 26, 44, 0.28) 50%,
-      rgba(4, 15, 26, 0.04) 70%,
-      rgba(4, 15, 26, 0.0) 100%
-    ),
-    radial-gradient(
-      circle at 20% 50%,
-      rgba(7, 28, 46, 0.35) 0%,
-      transparent 62%
+    repeating-linear-gradient(
+      112deg,
+      rgba(130, 244, 255, 0.0) 0%,
+      rgba(130, 244, 255, 0.06) 7%,
+      rgba(255, 255, 255, 0.09) 10%,
+      rgba(130, 244, 255, 0.0) 16%
     );
+  mix-blend-mode: screen;
+  filter: blur(16px);
+  animation: lightRaySway 12s ease-in-out infinite alternate;
 }
 
-.welcome-content-col {
-  position: relative;
-  z-index: 3;
+.welcome-ambient-canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-width: clamp(420px, 37vw, 510px);
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.welcome-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 42%,
+    rgba(4, 18, 32, 0.28) 0%,
+    rgba(4, 16, 28, 0.12) 48%,
+    rgba(3, 12, 22, 0.38) 100%
+  );
+}
+
+.welcome-center-hero {
+  position: relative;
+  z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.35vh, 14px);
-}
-
-/* 1. Branding */
-.welcome-branding {
-  opacity: 0;
-  animation: welcomeFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.05s forwards;
-}
-
-.welcome-title-row {
-  display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.welcome-anchor-icon {
-  width: clamp(36px, 4.4vh, 44px);
-  height: clamp(36px, 4.4vh, 44px);
-  border-radius: 12px;
-  background: rgba(24, 200, 218, 0.16);
-  border: 1px solid rgba(24, 200, 218, 0.5);
-  box-shadow: 0 0 18px rgba(24, 200, 218, 0.28);
-  display: grid;
-  place-items: center;
-  font-size: clamp(18px, 2.3vh, 22px);
-  flex-shrink: 0;
+  justify-content: center;
+  text-align: center;
+  gap: clamp(22px, 3.4vh, 34px);
+  padding: 24px 36px;
 }
 
 .welcome-title {
   font-family: 'Inter', 'Fredoka', system-ui, sans-serif;
   font-weight: 800;
-  font-size: clamp(28px, 3.8vh, 40px);
-  letter-spacing: 1.5px;
-  line-height: 1.05;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.65), 0 0 24px rgba(24, 200, 218, 0.22);
+  font-size: clamp(54px, 7.6vw, 92px);
+  letter-spacing: clamp(4px, 0.65vw, 9px);
+  line-height: 1.02;
+  text-shadow:
+    0 8px 34px rgba(2, 12, 22, 0.85),
+    0 2px 12px rgba(2, 12, 22, 0.75),
+    0 0 38px rgba(24, 200, 218, 0.32);
+  opacity: 0;
+  animation: welcomeFadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
 }
 
 .title-abyss {
@@ -929,192 +944,176 @@ button:disabled {
 
 .title-inc {
   color: var(--cyan);
-  text-shadow: 0 0 18px rgba(24, 200, 218, 0.48);
-}
-
-.welcome-sound-btn {
-  margin-left: auto;
-  width: 36px;
-  height: 36px;
-  font-size: 15px;
-  border-radius: 10px;
-  background: rgba(7, 26, 42, 0.72);
-  border: 1px solid rgba(24, 200, 218, 0.38);
-}
-
-.welcome-tagline {
-  margin-top: 4px;
-  font-size: clamp(11px, 1.35vh, 13px);
-  font-weight: 800;
-  letter-spacing: 2.6px;
-  color: var(--turquoise);
-  text-transform: uppercase;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
-}
-
-/* 2. Introduction */
-.welcome-intro {
-  background: rgba(7, 25, 41, 0.64);
-  border: 1px solid rgba(24, 200, 218, 0.28);
-  border-radius: 14px;
-  padding: clamp(9px, 1.3vh, 13px) clamp(13px, 1.4vw, 16px);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  opacity: 0;
-  animation: welcomeFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.14s forwards;
-}
-
-.welcome-greeting {
-  font-size: clamp(13px, 1.6vh, 15px);
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 3px;
-}
-
-.welcome-greeting strong {
-  color: var(--cyan);
-}
-
-.welcome-lead {
-  font-size: clamp(12px, 1.45vh, 13.5px);
-  line-height: 1.42;
-  color: #d7eef8;
-}
-
-/* 3. The Rules of the Ocean Panel */
-.welcome-rules-panel {
-  background: rgba(6, 22, 37, 0.78);
-  border: 1px solid rgba(24, 200, 218, 0.42);
-  border-radius: 16px;
-  padding: clamp(11px, 1.6vh, 16px) clamp(14px, 1.5vw, 18px);
-  backdrop-filter: blur(14px);
-  box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.52),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: clamp(7px, 1.05vh, 10px);
-  opacity: 0;
-  animation: welcomeFadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.24s forwards;
-}
-
-.welcome-rules-header {
-  font-size: clamp(11px, 1.35vh, 12.5px);
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  color: var(--cyan);
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(24, 200, 218, 0.24);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.welcome-rules-header::before {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
-}
-
-.welcome-rules-list {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(6px, 0.9vh, 9px);
-}
-
-.welcome-rule-item {
-  background: rgba(10, 35, 55, 0.58);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-left: 3px solid var(--cyan);
-  border-radius: 10px;
-  padding: clamp(6px, 0.95vh, 9px) 12px;
-}
-
-.welcome-rule-title {
-  font-size: clamp(11px, 1.32vh, 12.5px);
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #ffffff;
-  margin-bottom: 2px;
-}
-
-.welcome-rule-text {
-  font-size: clamp(11.5px, 1.35vh, 12.5px);
-  line-height: 1.36;
-  color: #bfe1f2;
-}
-
-.welcome-nature-law {
-  margin-top: 2px;
-  padding: clamp(7px, 1.05vh, 10px) 12px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, rgba(255, 200, 61, 0.16), rgba(24, 200, 218, 0.12));
-  border: 1px solid rgba(255, 200, 61, 0.45);
-  color: var(--yellow);
-  font-size: clamp(11.5px, 1.35vh, 12.8px);
-  line-height: 1.35;
-  text-align: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-}
-
-/* 4. Start Expedition Button */
-.welcome-actions {
-  display: flex;
-  align-items: center;
-  opacity: 0;
-  animation: welcomeFadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.34s forwards;
+  text-shadow:
+    0 8px 32px rgba(2, 12, 22, 0.8),
+    0 0 28px rgba(24, 200, 218, 0.65);
 }
 
 .btn-start-expedition {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: clamp(11px, 1.65vh, 15px) 26px;
-  border-radius: 12px;
+  padding: clamp(14px, 2vh, 18px) clamp(38px, 4.2vw, 56px);
+  border-radius: 999px;
   background: linear-gradient(135deg, var(--cyan) 0%, var(--turquoise) 100%);
   color: #041827;
   font-weight: 800;
-  font-size: clamp(13.5px, 1.7vh, 15.5px);
-  letter-spacing: 1.2px;
+  font-size: clamp(14px, 1.8vh, 17px);
+  letter-spacing: 2.2px;
   text-transform: uppercase;
-  border: 1px solid rgba(178, 252, 255, 0.75);
+  border: 1px solid rgba(195, 253, 255, 0.85);
   box-shadow:
-    0 10px 28px rgba(24, 200, 218, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    0 12px 34px rgba(4, 15, 26, 0.65),
+    0 0 26px rgba(24, 200, 218, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  animation: welcomeFadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.28s forwards;
   transition:
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.2s ease,
-    filter 0.2s ease;
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
 }
 
 .btn-start-expedition:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.07);
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.08);
   box-shadow:
-    0 14px 34px rgba(24, 200, 218, 0.52),
-    0 0 18px rgba(57, 217, 196, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 16px 40px rgba(4, 15, 26, 0.75),
+    0 0 36px rgba(57, 217, 196, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-.btn-start-expedition:hover .btn-expedition-arrow {
-  transform: translateX(4px);
+/* ============================================================================
+   SCREENS 3, 4 & 5: SURFACE BRIEFING PILLS, CAPTAIN CONTINUE & START MINING
+   ============================================================================ */
+.btn-captain-continue {
+  flex-shrink: 0;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--cyan), var(--turquoise));
+  color: var(--deep-navy);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  box-shadow: 0 4px 14px rgba(24, 200, 218, 0.35);
 }
 
-.btn-expedition-arrow {
+.btn-captain-continue:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.surface-briefing-overlay {
+  position: fixed;
+  left: 50%;
+  bottom: 112px;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(92vw, 760px);
+  pointer-events: none;
+}
+
+.briefing-pills-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  pointer-events: auto;
+  animation: welcomeFadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.briefing-pill {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(7, 26, 42, 0.84);
+  border: 1px solid rgba(24, 200, 218, 0.42);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+
+.briefing-pill-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(24, 200, 218, 0.16);
+  border: 1px solid rgba(24, 200, 218, 0.4);
+  display: grid;
+  place-items: center;
   font-size: 17px;
-  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.briefing-pill-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--cyan);
+  margin-bottom: 3px;
+}
+
+.briefing-pill-text {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+
+.start-mining-action-wrap {
+  pointer-events: auto;
+  animation: welcomeFadeUp 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.btn-lets-start-mining {
+  padding: 15px 42px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--turquoise) 100%);
+  color: #041827;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  border: 1px solid rgba(195, 253, 255, 0.9);
+  box-shadow:
+    0 12px 32px rgba(4, 15, 26, 0.65),
+    0 0 28px rgba(24, 200, 218, 0.55);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.btn-lets-start-mining:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.08);
+  box-shadow:
+    0 16px 38px rgba(4, 15, 26, 0.75),
+    0 0 36px rgba(57, 217, 196, 0.75);
+}
+
+@keyframes gentleWaterDrift {
+  0% {
+    transform: scale(1.0) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.028) translate3d(-0.6%, -0.4%, 0);
+  }
+}
+
+@keyframes lightRaySway {
+  0% {
+    transform: translateX(-2.5%) rotate(-1deg);
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateX(2.5%) rotate(1.5deg);
+    opacity: 0.95;
+  }
 }
 
 @keyframes welcomeFadeUp {
   0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   100% {
     opacity: 1;
