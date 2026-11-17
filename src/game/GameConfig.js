@@ -1,11 +1,10 @@
 // ============================================================================
 // ABYSS INC. — MASTER SIMULATION CONFIGURATION & GAME BALANCE PARAMETERS
-// Single-player environmental strategy, repeatable diving & ongoing operations
+// Single-player environmental strategy, 4 starting parameters & 2 dynamic rules
 // ============================================================================
 
 export const GAME_STAGES = {
   SURFACE_INTRO: 'SURFACE_INTRO',
-  BUSINESS_SETTINGS: 'BUSINESS_SETTINGS',
   DEPLOYMENT: 'DEPLOYMENT',
   UNDERWATER_MINING: 'UNDERWATER_MINING',
   RULE_CHANGE_1: 'RULE_CHANGE_1',
@@ -37,22 +36,27 @@ export const IMMUTABLE_ECOLOGICAL_LAWS = [
 
 export const GAME_BALANCE = {
   campaign: {
-    startingCredits: 120000,
-    totalFiniteSeabedOre: 240, // 8 finite seabed deposits totaling 240t
-    surfaceOilPatchesCount: 8,
-    surfaceTankCapacity: 40,
+    startingCredits: 120000, // Fixed starting company credits grant ($120K)
+    totalFiniteSeabedOre: 240, // 8 finite seabed deposits totaling 240T
+    surfaceOilPatchesCount: 6,
+    surfaceTankCapacity: 30,
     warningMinOre: 20,
-    warningHealthThreshold: 84,
+    warningHealthThreshold: 86,
     bankruptcyThreshold: 0,
     collapseHealthThreshold: 10
   },
 
-  // Three Initial Business Settings (NOT counted as the 2 dynamic rule changes)
+  // Four Functional Starting Parameters (Separate from the 2 in-campaign rule changes)
   businessSettings: {
     capacityOptions: [
-      { value: 20, label: 'Compact (20t)', consequence: 'Lighter trips; must return to the boat more often.' },
-      { value: 35, label: 'Standard (35t)', consequence: 'Balanced cargo hold for steady extraction.' },
-      { value: 50, label: 'Heavy (50t)', consequence: 'More ore carried per trip, fewer ascents.' }
+      { value: 20, label: '20T', consequence: 'Lighter hold: carries up to 20T per trip.' },
+      { value: 35, label: '35T', consequence: 'Balanced hold: carries up to 35T per trip.' },
+      { value: 50, label: '50T', consequence: 'Heavy hold: carries up to 50T per trip.' }
+    ],
+    workshopCapacityOptions: [
+      { value: 50, label: '50T', consequence: 'Compact workshop: stores up to 50T of ore before selling.' },
+      { value: 100, label: '100T', consequence: 'Standard workshop: stores up to 100T of ore before selling.' },
+      { value: 150, label: '150T', consequence: 'Large workshop: stores up to 150T of ore before selling.' }
     ],
     priceRange: {
       min: 2000,
@@ -62,9 +66,9 @@ export const GAME_BALANCE = {
     },
     targetRange: {
       min: 40,
-      max: 100,
+      max: 120,
       step: 10,
-      default: 60
+      default: 50
     }
   },
 
@@ -99,12 +103,6 @@ export const GAME_BALANCE = {
     }
   },
 
-  // Equipment Upgrades for Ongoing Operations
-  upgrades: {
-    hopper: { cost: 35000, capacityBonus: 15, label: '+15t Cargo Hopper' },
-    drill: { cost: 40000, speedBonus: 1.25, label: '+25% Mining Speed' }
-  },
-
   ecology: {
     baseSedimentFactor: 0.14,
     baseHabitatDamage: 0.085,
@@ -119,8 +117,7 @@ export const GAME_BALANCE = {
   },
 
   economy: {
-    ecoCertifiedPremium: 1.35,
-    maxSafePrice: 3500
+    ecoCertifiedPremium: 1.35
   },
 
   constitutionOptions: [

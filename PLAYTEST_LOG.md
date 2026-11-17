@@ -8,30 +8,5 @@
 
 | Date | Type | What Was Tested | Result | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| 2026-11-16 | Automated (`node tests/verifyGameLogic.mjs`) | 3x Repeatable Dive/Surface cycles & state preservation, Tutorial Complete → Continue Operations (no reset), Single-Player enforcement (no multiplayer UI), Rule 1 & Rule 2 enforcement, Upgrades, Water-Flow BFS puzzle | **PASS** | All state transitions, repeatable navigation, ongoing operations, and puzzle checks verified. |
-| 2026-11-16 | Build (`npm run build`) | Vite production bundle (`index.html`, `style.css`, `main.js` + Three.js) | **PASS (647ms)** | Clean production bundle with zero errors. |
-
----
-
-## 2. Human Playtesting Sessions (Pending)
-
-### Session Template — Test 1 (Repeatable Navigation)
-- **Test Date:** *Pending*
-- **Participants:** 1
-- **Problems Observed:** *To be recorded*
-- **Participant Feedback:** *To be recorded*
-- **Changes Made:** *To be recorded*
-
-### Session Template — Test 2 (Tutorial → Ongoing Operations)
-- **Test Date:** *Pending*
-- **Participants:** 1
-- **Problems Observed:** *To be recorded*
-- **Participant Feedback:** *To be recorded*
-- **Changes Made:** *To be recorded*
-
-### Session Template — Test 3 (Different Rule Choices)
-- **Test Date:** *Pending*
-- **Participants:** 1
-- **Problems Observed:** *To be recorded*
-- **Participant Feedback:** *To be recorded*
-- **Changes Made:** *To be recorded*
+| 2026-11-17 | Automated (`node tests/verifyGameLogic.mjs`) | 4 Starting Parameters across 2 configurations (`20T/50T/$2500/40T` vs `50T/150T/$4000/90T`), Fixed `$120K` Starting Credits vs parameters, separate `240T` Deposit Remaining, 3x Repeatable Dive/Surface cycles, 4 shuffled solvable puzzle variations & 4 distinct 3D coral outcomes, Back button state preservation, 2-Rule cap (rejects 3rd change), Simplified underwater UI (`E` & `F` only) | **PASS** | All checks passed with zero errors or warnings. |
+| 2026-11-17 | Build (`npm run build`) | Vite production bundle (`index.html`, `style.css`, `main.js` + Three.js) | **PASS** | Clean production bundle generated in `dist/`. |

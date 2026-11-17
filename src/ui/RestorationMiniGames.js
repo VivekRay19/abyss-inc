@@ -1,8 +1,142 @@
 // ============================================================================
-// ABYSS INC. — INTERACTIVE REEF RESTORATION MINI-GAMES
-// Mini-Game A: Clean the Reef (Interactive Sediment Scrubbing)
-// Mini-Game B: Rebuild the Reef (Water-Flow Logic Puzzle + Coral Placement)
+// ABYSS INC. — INTERACTIVE REEF RESTORATION MINI-GAMES & PUZZLE VARIATIONS
+// Features 4 shuffled solvable puzzle variations & 4 distinct coral outcomes
 // ============================================================================
+
+export const PUZZLE_VARIATIONS = [
+  {
+    id: 'northern_conduit',
+    title: 'Variation 1 — Northern Ridge Conduit',
+    instruction:
+      'Rotate the reef channels to connect Fresh Current Inlet (top-left) to Coral Nursery Outlet (bottom-right) via the central column.',
+    clueShort: 'Clue: Connect Top-Left horizontally into the center column.',
+    clueFull: 'Route: Top-Left (0,0) → Top-Center (0,1) → Center (1,1) → Bottom-Center (2,1) → Bottom-Right (2,2).',
+    solutionIndices: [0, 1, 4, 7, 8],
+    outcome: {
+      id: 'outcome_staghorn',
+      name: 'Crimson Staghorn & Golden Antler Thicket',
+      regionName: 'Northern Ridge Sanctuary',
+      shapeStyle: 'staghorn',
+      primaryColor: 0xff5e7e,
+      secondaryColor: 0xffc83d,
+      fragments: [
+        '🪸 Crimson Staghorn Branch',
+        '🪸 Golden Antler Crown',
+        '🪸 Rose Pillar Cluster'
+      ]
+    },
+    buildGrid: () => [
+      { r: 0, c: 0, type: 'straight', basePorts: [1, 3], rot: 1 },
+      { r: 0, c: 1, type: 'corner', basePorts: [2, 3], rot: 2 },
+      { r: 0, c: 2, type: 'corner', basePorts: [1, 2], rot: 1 },
+      { r: 1, c: 0, type: 'straight', basePorts: [0, 2], rot: 1 },
+      { r: 1, c: 1, type: 'straight', basePorts: [0, 2], rot: 1 },
+      { r: 1, c: 2, type: 'tee', basePorts: [0, 2, 3], rot: 2 },
+      { r: 2, c: 0, type: 'corner', basePorts: [0, 1], rot: 2 },
+      { r: 2, c: 1, type: 'corner', basePorts: [0, 1], rot: 3 },
+      { r: 2, c: 2, type: 'straight', basePorts: [1, 3], rot: 1 }
+    ]
+  },
+  {
+    id: 'trench_siphon',
+    title: 'Variation 2 — Deep Trench Thermal Siphon',
+    instruction:
+      'Route the warm mineral current down the left trench wall and across the lower seabed floor to the nursery.',
+    clueShort: 'Clue: Turn the Top-Left channel downward into the left column.',
+    clueFull: 'Route: Top-Left (0,0) → Mid-Left (1,0) → Bottom-Left (2,0) → Bottom-Center (2,1) → Bottom-Right (2,2).',
+    solutionIndices: [0, 3, 6, 7, 8],
+    outcome: {
+      id: 'outcome_seafan',
+      name: 'Bioluminescent Azure & Violet Sea Fans',
+      regionName: 'Western Trench Alcove',
+      shapeStyle: 'seafan',
+      primaryColor: 0x18c8da,
+      secondaryColor: 0xb978ff,
+      fragments: [
+        '🪸 Azure Gorgonian Sea Fan',
+        '🪸 Violet Lace Frond',
+        '🪸 Luminous Pearl Polyp'
+      ]
+    },
+    buildGrid: () => [
+      { r: 0, c: 0, type: 'corner', basePorts: [2, 3], rot: 1 },
+      { r: 0, c: 1, type: 'straight', basePorts: [1, 3], rot: 1 },
+      { r: 0, c: 2, type: 'corner', basePorts: [2, 3], rot: 0 },
+      { r: 1, c: 0, type: 'straight', basePorts: [0, 2], rot: 1 },
+      { r: 1, c: 1, type: 'corner', basePorts: [0, 1], rot: 2 },
+      { r: 1, c: 2, type: 'straight', basePorts: [0, 2], rot: 0 },
+      { r: 2, c: 0, type: 'corner', basePorts: [0, 1], rot: 3 },
+      { r: 2, c: 1, type: 'straight', basePorts: [1, 3], rot: 1 },
+      { r: 2, c: 2, type: 'straight', basePorts: [1, 3], rot: 1 }
+    ]
+  },
+  {
+    id: 'atoll_perimeter',
+    title: 'Variation 3 — Outer Atoll Shelf Circulation',
+    instruction:
+      'Channel oxygenated surface water across the entire top reef ledge and down the eastern cliff wall.',
+    clueShort: 'Clue: Run the current straight across all three top-row tiles first.',
+    clueFull: 'Route: Top-Left (0,0) → Top-Center (0,1) → Top-Right (0,2) → Mid-Right (1,2) → Bottom-Right (2,2).',
+    solutionIndices: [0, 1, 2, 5, 8],
+    outcome: {
+      id: 'outcome_brain_pipes',
+      name: 'Emerald Brain Dome & Organ-Pipe Sanctuary',
+      regionName: 'Eastern Atoll Terrace',
+      shapeStyle: 'brain_pipes',
+      primaryColor: 0x55d99a,
+      secondaryColor: 0x39d9c4,
+      fragments: [
+        '🪸 Emerald Brain Coral Dome',
+        '🪸 Turquoise Organ-Pipe Cluster',
+        '🪸 Jade Fluted Reef Tube'
+      ]
+    },
+    buildGrid: () => [
+      { r: 0, c: 0, type: 'straight', basePorts: [1, 3], rot: 1 },
+      { r: 0, c: 1, type: 'straight', basePorts: [1, 3], rot: 1 },
+      { r: 0, c: 2, type: 'corner', basePorts: [2, 3], rot: 2 },
+      { r: 1, c: 0, type: 'corner', basePorts: [0, 1], rot: 1 },
+      { r: 1, c: 1, type: 'tee', basePorts: [0, 1, 2], rot: 1 },
+      { r: 1, c: 2, type: 'straight', basePorts: [0, 2], rot: 1 },
+      { r: 2, c: 0, type: 'straight', basePorts: [1, 3], rot: 0 },
+      { r: 2, c: 1, type: 'corner', basePorts: [0, 3], rot: 2 },
+      { r: 2, c: 2, type: 'corner', basePorts: [0, 1], rot: 3 }
+    ]
+  },
+  {
+    id: 'zigzag_cascade',
+    title: 'Variation 4 — Cascading Terrace Channels',
+    instruction:
+      'Weave the nutrient stream through the stepped middle terrace to feed the deep coral nursery.',
+    clueShort: 'Clue: Drop from Top-Left to Mid-Left, then cross the middle row.',
+    clueFull: 'Route: Top-Left (0,0) → Mid-Left (1,0) → Center (1,1) → Mid-Right (1,2) → Bottom-Right (2,2).',
+    solutionIndices: [0, 3, 4, 5, 8],
+    outcome: {
+      id: 'outcome_table_sunburst',
+      name: 'Sunburst Table-Coral & Lavender Rosette Reef',
+      regionName: 'Central Stepped Terrace',
+      shapeStyle: 'table_sunburst',
+      primaryColor: 0xff9b45,
+      secondaryColor: 0xd48cff,
+      fragments: [
+        '🪸 Sunburst Table-Coral Shelf',
+        '🪸 Amber Rosette Plate',
+        '🪸 Lavender Canopy Disk'
+      ]
+    },
+    buildGrid: () => [
+      { r: 0, c: 0, type: 'corner', basePorts: [2, 3], rot: 3 },
+      { r: 0, c: 1, type: 'corner', basePorts: [1, 2], rot: 1 },
+      { r: 0, c: 2, type: 'straight', basePorts: [1, 3], rot: 0 },
+      { r: 1, c: 0, type: 'corner', basePorts: [0, 1], rot: 2 },
+      { r: 1, c: 1, type: 'straight', basePorts: [1, 3], rot: 1 },
+      { r: 1, c: 2, type: 'corner', basePorts: [2, 3], rot: 1 },
+      { r: 2, c: 0, type: 'corner', basePorts: [0, 1], rot: 1 },
+      { r: 2, c: 1, type: 'straight', basePorts: [1, 3], rot: 0 },
+      { r: 2, c: 2, type: 'corner', basePorts: [0, 1], rot: 2 }
+    ]
+  }
+];
 
 export class RestorationMiniGames {
   constructor(game, sound, onProgressUpdate) {
@@ -15,32 +149,47 @@ export class RestorationMiniGames {
     this.cleanCtx = null;
     this.sedimentBlobs = [];
     this.isScrubbing = false;
+    this.cleaningInitialized = false;
 
-    // Mini-Game B state (3x3 Water-Flow Grid)
-    // Directions: 0=Top, 1=Right, 2=Bottom, 3=Left
-    // Tile types: 'straight' ([0,2]), 'corner' ([0,1]), 'tee' ([0,1,2])
+    // Shuffled non-repeating deck of puzzle variations
+    this.variationOrder = [0, 1, 2, 3];
+    this.shuffleDeck();
+    this.deckCursor = 0;
+    this.currentVariation = null;
     this.grid = [];
     this.coralsPlaced = 0;
     this.coralsRequired = 3;
+    this.plantedSlots = new Set();
+  }
+
+  shuffleDeck() {
+    for (let i = this.variationOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = this.variationOrder[i];
+      this.variationOrder[i] = this.variationOrder[j];
+      this.variationOrder[j] = tmp;
+    }
   }
 
   // --------------------------------------------------------------------------
-  // MINI-GAME A: CLEAN THE REEF
+  // MINI-GAME A: CLEAN THE REEF (PRESERVES PROGRESS ON BACK NAVIGATION)
   // --------------------------------------------------------------------------
-  initCleanReefGame(canvasEl) {
+  initCleanReefGame(canvasEl, forceReset = false) {
     this.cleanCanvas = canvasEl;
     if (!this.cleanCanvas) return;
     this.cleanCtx = this.cleanCanvas.getContext('2d');
 
-    // Generate 14 sediment & debris blobs covering the coral
-    this.sedimentBlobs = [];
-    for (let i = 0; i < 14; i++) {
-      this.sedimentBlobs.push({
-        x: 55 + ((i * 67) % 370),
-        y: 55 + ((Math.floor(i / 4) * 58 + (i % 2) * 20) % 175),
-        r: 24 + (i % 3) * 6,
-        alpha: 1.0
-      });
+    if (!this.cleaningInitialized || forceReset) {
+      this.cleaningInitialized = true;
+      this.sedimentBlobs = [];
+      for (let i = 0; i < 14; i++) {
+        this.sedimentBlobs.push({
+          x: 55 + ((i * 67) % 370),
+          y: 55 + ((Math.floor(i / 4) * 58 + (i % 2) * 20) % 175),
+          r: 24 + (i % 3) * 6,
+          alpha: 1.0
+        });
+      }
     }
 
     const handleScrub = (clientX, clientY) => {
@@ -60,7 +209,6 @@ export class RestorationMiniGames {
     });
     this.cleanCanvas.onmousemove = (e) => handleScrub(e.clientX, e.clientY);
 
-    // Touch support
     this.cleanCanvas.ontouchstart = (e) => {
       this.isScrubbing = true;
       if (e.touches[0]) handleScrub(e.touches[0].clientX, e.touches[0].clientY);
@@ -77,7 +225,7 @@ export class RestorationMiniGames {
   }
 
   scrubAt(x, y) {
-    const power = 0.22 * this.game.restorationSupplies.cleaningPower;
+    const power = 0.24 * this.game.restorationSupplies.cleaningPower;
     let changed = false;
 
     for (const b of this.sedimentBlobs) {
@@ -109,14 +257,12 @@ export class RestorationMiniGames {
     const w = this.cleanCanvas.width;
     const h = this.cleanCanvas.height;
 
-    // Background water gradient
     const bg = ctx.createLinearGradient(0, 0, 0, h);
     bg.addColorStop(0, '#0b2d43');
     bg.addColorStop(1, '#071c2b');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Draw vibrant coral underneath
     const corals = [
       { x: 90, y: 185, r: 42, color: '#ff6b9d' },
       { x: 180, y: 170, r: 52, color: '#18c8da' },
@@ -128,7 +274,6 @@ export class RestorationMiniGames {
       ctx.beginPath();
       ctx.arc(c.x, c.y, c.r, Math.PI, 0);
       ctx.fill();
-      // Coral branches
       ctx.strokeStyle = c.color;
       ctx.lineWidth = 10;
       ctx.lineCap = 'round';
@@ -140,13 +285,11 @@ export class RestorationMiniGames {
       }
     }
 
-    // Small surviving fish
     ctx.fillStyle = '#ffc83d';
     ctx.beginPath();
     ctx.ellipse(340, 72, 12, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw sediment & debris blobs on top
     for (const b of this.sedimentBlobs) {
       if (b.alpha <= 0.02) continue;
       ctx.save();
@@ -162,31 +305,34 @@ export class RestorationMiniGames {
   }
 
   // --------------------------------------------------------------------------
-  // MINI-GAME B: WATER-FLOW LOGIC PUZZLE + CORAL PLACEMENT
+  // MINI-GAME B: SHUFFLED PUZZLE VARIATIONS & VARIED CORAL OUTCOMES
   // --------------------------------------------------------------------------
-  initWaterFlowPuzzle() {
-    // 3x3 grid where (0,0) has Inlet on Left (3) and (2,2) has Outlet on Right (1).
-    // Guaranteed solvable path: (0,0)->(0,1)->(1,1)->(2,1)->(2,2)
-    // We scramble initial rotations so the player solves it in 30-60s!
-    const layout = [
-      // Row 0
-      { r: 0, c: 0, type: 'corner', basePorts: [3, 1], rot: 1 }, // straight-ish L->R actually let's use straight [1,3]
-      { r: 0, c: 1, type: 'corner', basePorts: [2, 3], rot: 2 },
-      { r: 0, c: 2, type: 'corner', basePorts: [1, 2], rot: 0 },
-      // Row 1
-      { r: 1, c: 0, type: 'straight', basePorts: [0, 2], rot: 1 },
-      { r: 1, c: 1, type: 'straight', basePorts: [0, 2], rot: 1 },
-      { r: 1, c: 2, type: 'tee', basePorts: [0, 2, 3], rot: 0 },
-      // Row 2
-      { r: 2, c: 0, type: 'corner', basePorts: [0, 1], rot: 2 },
-      { r: 2, c: 1, type: 'corner', basePorts: [0, 1], rot: 3 },
-      { r: 2, c: 2, type: 'straight', basePorts: [1, 3], rot: 1 }
-    ];
-    // Fix (0,0) to straight [1,3] so it connects Left Inlet (3) to Right (1) when rot=0
-    layout[0] = { r: 0, c: 0, type: 'straight', basePorts: [1, 3], rot: 1 };
+  initWaterFlowPuzzle(forceNewVariation = false) {
+    if (!this.currentVariation || forceNewVariation) {
+      const varIdx = this.variationOrder[this.deckCursor % this.variationOrder.length];
+      this.deckCursor++;
+      if (this.deckCursor % this.variationOrder.length === 0) {
+        // Reshuffle for future cycles while avoiding immediate repeat
+        const lastIdx = varIdx;
+        this.shuffleDeck();
+        if (this.variationOrder[0] === lastIdx) {
+          const swap = this.variationOrder[1];
+          this.variationOrder[1] = this.variationOrder[0];
+          this.variationOrder[0] = swap;
+        }
+      }
+      this.currentVariation = PUZZLE_VARIATIONS[varIdx];
+      this.grid = this.currentVariation.buildGrid();
+      this.coralsPlaced = 0;
+      this.plantedSlots.clear();
+    }
+    return this.currentVariation;
+  }
 
-    this.grid = layout;
-    this.coralsPlaced = 0;
+  advanceToNextRestorationCycle() {
+    this.cleaningInitialized = false;
+    this.game.reefCleanProgress = 0;
+    return this.initWaterFlowPuzzle(true);
   }
 
   getTilePorts(tile) {
@@ -201,17 +347,18 @@ export class RestorationMiniGames {
   }
 
   isWaterPathConnected() {
-    // BFS from (0,0) requiring port 3 (Left Inlet) to (2,2) requiring port 1 (Right Outlet)
     const start = this.grid[0];
-    if (!this.getTilePorts(start).includes(3)) return { connected: false, visited: new Set() };
+    if (!start || !this.getTilePorts(start).includes(3)) {
+      return { connected: false, visited: new Set() };
+    }
 
     const visited = new Set([0]);
     const queue = [0];
     const dirs = [
-      { dr: -1, dc: 0, port: 0, opp: 2 }, // Top
-      { dr: 0, dc: 1, port: 1, opp: 3 },  // Right
-      { dr: 1, dc: 0, port: 2, opp: 0 },  // Bottom
-      { dr: 0, dc: -1, port: 3, opp: 1 }  // Left
+      { dr: -1, dc: 0, port: 0, opp: 2 },
+      { dr: 0, dc: 1, port: 1, opp: 3 },
+      { dr: 1, dc: 0, port: 2, opp: 0 },
+      { dr: 0, dc: -1, port: 3, opp: 1 }
     ];
 
     while (queue.length > 0) {

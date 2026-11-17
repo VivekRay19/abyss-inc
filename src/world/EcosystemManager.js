@@ -71,6 +71,93 @@ export class EcosystemManager {
     }
   }
 
+  spawnRestoredCoralFormation(outcomeSpec, countIndex = 1) {
+    // Place distinct newly restored 3D coral sanctuary formations around the central reef
+    const angle = countIndex * 1.65;
+    const radius = 4.2 + (countIndex % 3) * 2.1;
+    const cx = Math.cos(angle) * radius;
+    const cz = 1.5 + Math.sin(angle) * radius;
+    const cy = this.oceanEnv.getTerrainHeight(cx, cz);
+
+    const group = new THREE.Group();
+    group.position.set(cx, cy, cz);
+
+    const primaryHex = outcomeSpec?.primaryColor || 0xff5e7e;
+    const secondaryHex = outcomeSpec?.secondaryColor || 0x39d9c4;
+    const shapeStyle = outcomeSpec?.shapeStyle || 'staghorn';
+
+    const matPrimary = new THREE.MeshStandardMaterial({
+      color: primaryHex,
+      emissive: primaryHex,
+      emissiveIntensity: 0.45,
+      roughness: 0.35,
+      flatShading: true
+    });
+    const matSecondary = new THREE.MeshStandardMaterial({
+      color: secondaryHex,
+      emissive: secondaryHex,
+      emissiveIntensity: 0.42,
+      roughness: 0.38,
+      flatShading: true
+    });
+
+    if (shapeStyle === 'staghorn') {
+      // Tall branching antler thicket
+      for (let i = 0; i < 7; i++) {
+        const branch = new THREE.Mesh(
+          new THREE.ConeGeometry(0.22, 1.8 + (i % 3) * 0.45, 6),
+          i % 2 === 0 ? matPrimary : matSecondary
+        );
+        const a = (i / 7) * Math.PI * 2;
+        branch.position.set(Math.cos(a) * 0.75, 0.9, Math.sin(a) * 0.75);
+        branch.rotation.z = Math.cos(a) * 0.32;
+        branch.rotation.x = Math.sin(a) * 0.32;
+        group.add(branch);
+      }
+    } else if (shapeStyle === 'seafan') {
+      // Wide lacy gorgonian sea fans + glowing pearls
+      for (let i = 0; i < 4; i++) {
+        const fan = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.15, 0.25, 0.12, 12),
+          i % 2 === 0 ? matPrimary : matSecondary
+        );
+        fan.rotation.x = Math.PI / 2;
+        fan.rotation.z = (i * Math.PI) / 4;
+        fan.position.set((i - 1.5) * 0.55, 1.1 + (i % 2) * 0.3, 0);
+        group.add(fan);
+      }
+    } else if (shapeStyle === 'brain_pipes') {
+      // Massive brain coral dome + organ-pipe chimes
+      const dome = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 1), matPrimary);
+      dome.scale.set(1.25, 0.78, 1.2);
+      dome.position.y = 0.55;
+      group.add(dome);
+      for (let i = 0; i < 6; i++) {
+        const pipe = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.16, 0.2, 1.6 + (i % 3) * 0.4, 8),
+          matSecondary
+        );
+        const a = (i / 6) * Math.PI * 2;
+        pipe.position.set(Math.cos(a) * 1.15, 0.85, Math.sin(a) * 1.15);
+        group.add(pipe);
+      }
+    } else {
+      // Tiered table-coral shelves & sunburst rosette
+      for (let tier = 0; tier < 3; tier++) {
+        const table = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.35 - tier * 0.28, 0.45, 0.22, 10),
+          tier % 2 === 0 ? matPrimary : matSecondary
+        );
+        table.position.set(0, 0.55 + tier * 0.52, 0);
+        group.add(table);
+      }
+    }
+
+    this.scene.add(group);
+    this.spawnSedimentBurst(new THREE.Vector3(cx, cy + 0.8, cz), 8, true);
+    return group;
+  }
+
   createSingleDeposit(spec) {
     const group = new THREE.Group();
     const baseY = this.oceanEnv.getTerrainHeight(spec.x, spec.z);

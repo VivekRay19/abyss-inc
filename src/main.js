@@ -6,7 +6,6 @@ import { MiningFleetManager } from './machines/MiningMachines.js';
 import { SurfaceOceanManager, HumanDiver } from './world/SurfaceAndDiver.js';
 import { GameController, RULE_CHANGES } from './game/GameState.js';
 import { GAME_BALANCE, GAME_STAGES, PLAYER_LOCATIONS } from './game/GameConfig.js';
-import { ConstitutionPersistence } from './game/ConstitutionPersistence.js';
 import { RestorationMiniGames } from './ui/RestorationMiniGames.js';
 
 // ============================================================================
@@ -53,11 +52,9 @@ const fleet = new MiningFleetManager(scene, oceanEnv, ecosystem);
 const surfaceOcean = new SurfaceOceanManager(scene);
 const diver = new HumanDiver(scene, oceanEnv);
 
-// Keep strictly one boat, one mining machine, and one human diver
 if (fleet.submarine && fleet.submarine.root) fleet.submarine.root.visible = false;
 if (fleet.restorationDrone && fleet.restorationDrone.root) fleet.restorationDrone.root.visible = false;
 
-// Remember where crawler was on the seabed across repeatable dives
 const lastCrawlerSeabedPos = new THREE.Vector3(-2.5, oceanEnv.getTerrainHeight(-2.5, -1.5), -1.5);
 
 function placeCrawlerOnBoatDeck() {
@@ -93,23 +90,21 @@ const game = new GameController(oceanEnv, ecosystem, fleet, sound, {
 const miniGames = new RestorationMiniGames(game, sound, (kind, val) => {
   if (kind === 'clean') {
     document.getElementById('mg-clean-pct').textContent = `${val}%`;
-    document.getElementById('r-clean-pct').textContent = `${val}%`;
-    if (val >= 90) {
-      document.getElementById('btn-proceed-puzzle').classList.remove('hidden');
-    }
   }
 });
 
 // ============================================================================
 // 3. UI & STAGE TRANSITION HANDLER
 // ============================================================================
+const captainCardEl = document.getElementById('captain-card');
 const captainTextEl = document.getElementById('captain-text');
 const objectiveEl = document.getElementById('hud-objective');
 const modeBadgeEl = document.getElementById('hud-mode-badge');
 const stageHudEl = document.getElementById('stage-hud');
 
-function setCaptainDialogue(text) {
+function setCaptainDialogue(text, visible = true) {
   captainTextEl.textContent = text;
+  captainCardEl.classList.toggle('hidden', !visible);
 }
 
 function setObjective(text) {
@@ -124,12 +119,18 @@ function updateRuleStatusBadges() {
   const r1 = document.getElementById('rule1-badge');
   const r2 = document.getElementById('rule2-badge');
   if (game.rule1Enacted) {
-    r1.textContent = `Rule 1: ${game.rule1Enacted.shortTitle}`;
+    r1.textContent = `Rule 1: ${game.rule1Enacted.shortTitle} ✓`;
     r1.classList.add('active');
+  } else {
+    r1.textContent = 'Rule 1: Pending';
+    r1.classList.remove('active');
   }
   if (game.rule2Enacted) {
-    r2.textContent = `Rule 2: ${game.rule2Enacted.shortTitle}`;
+    r2.textContent = `Rule 2: ${game.rule2Enacted.shortTitle} ✓`;
     r2.classList.add('active');
+  } else {
+    r2.textContent = 'Rule 2: Pending';
+    r2.classList.remove('active');
   }
 }
 
@@ -138,46 +139,29 @@ function hideAllModals() {
 }
 
 function updateContextualObjective() {
-  modeBadgeEl.textContent = game.tutorialCompleted ? 'ONGOING OPS' : 'TUTORIAL';
+  modeBadgeEl.textContent = game.tutorialCompleted ? 'ONGOING OPS' : 'OBJECTIVE';
 
-  if (game.tutorialCompleted) {
-    const uncleanedOil = surfaceOcean.oilPatches.filter((p) => !p.cleaned).length;
-    const remOre = game.getTotalRemainingSeabedOre();
-    if (game.location === PLAYER_LOCATIONS.SURFACE) {
-      if (uncleanedOil > 0) {
-        setObjective(`Clean ${uncleanedOil} remaining floating oil slicks or press [F] to Dive`);
-      } else if (game.oreStockpile > 0) {
-        setObjective('Sell extracted ore stockpile or press [F] to Dive to the seabed');
-      } else {
-        setObjective('Navigate the ocean surface or press [F] to Dive and explore remaining deposits');
-      }
-    } else if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
-      if (remOre > 0) {
-        setObjective(`Explore & extract remaining seabed deposits (${remOre}t left) or press [F] to Surface`);
-      } else {
-        setObjective('All mineral veins extracted! Restore damaged reefs or press [F] to Surface');
-      }
-    }
-    return;
-  }
-
-  // Tutorial contextual objectives
   if (game.location === PLAYER_LOCATIONS.SURFACE) {
     const uncleanedOil = surfaceOcean.oilPatches.filter((p) => !p.cleaned).length;
     if (uncleanedOil > 0) {
-      setObjective(`Clean floating oil slicks (${game.surfacePollutionCollected}/${game.surfacePollutionTotal}) or press [F] to Dive`);
+      setObjective(`Clean floating oil slicks (${game.surfacePollutionCollected}/${game.surfacePollutionTotal}) or press F to Dive`);
+    } else if (!game.reefRestored) {
+      setObjective('Surface clean! Click Restore Reef or press F to Dive to the ocean floor');
+    } else if (game.oreStockpile > 0) {
+      setObjective(`Sell Workshop Ore (${game.oreStockpile}/${game.businessSettings.workshopCapacity}T) or press F to Dive`);
     } else {
-      setObjective('Surface clean! Press [F] to Dive to the ocean floor');
+      setObjective('Navigate the ocean surface, Restore Reef, or press F to Dive to the seabed');
     }
   } else if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
-    if (game.stage === GAME_STAGES.DIVE_RESTORATION || game.underwaterMode === 'DIVER') {
-      setObjective('Clean the damaged coral reef [E] & solve the water-flow puzzle');
-    } else if (!game.rule1Enacted) {
-      setObjective(`Extract ore toward your ${game.businessSettings.extractionTarget}t target (or press [F] to Surface)`);
-    } else if (game.miningProhibited) {
-      setObjective('Mining paused by Restoration-First Permit — Press [F] to Return to Surface');
+    const remOre = game.getTotalRemainingSeabedOre();
+    if (game.miningProhibited) {
+      setObjective('Mining paused by Restoration-First Permit — Press F to Return to Surface');
+    } else if (remOre > 0) {
+      setObjective(
+        `Extract Ore (${Math.round(game.totalTonsMined)} / ${game.businessSettings.extractionTarget}T) • Deposit Remaining: ${remOre}T`
+      );
     } else {
-      setObjective(`Mine ore (${Math.round(game.totalTonsMined)}/${game.businessSettings.extractionTarget}t) or press [F] to Return to Surface`);
+      setObjective('All seabed mineral deposits extracted! Press F to Return to Surface');
     }
   }
 }
@@ -186,29 +170,19 @@ function handleStageTransition(stage, location) {
   hideAllModals();
   document.getElementById('hud-mining').classList.add('hidden');
   document.getElementById('hud-cleanup').classList.add('hidden');
-  document.getElementById('hud-restoration').classList.add('hidden');
-  document.getElementById('hud-sell-box').classList.add('hidden');
 
   if (stage === GAME_STAGES.SURFACE_INTRO) {
     stageHudEl.classList.add('hidden');
     document.getElementById('modal-intro').classList.remove('hidden');
-    setObjective('Establish your deep-sea mining company');
+    setObjective('Configure starting parameters & launch your company');
     setCaptainDialogue(
-      "Welcome aboard, new recruit! Ready to start your very own deep-sea mining company? The ocean is full of valuable resources. Let's get started!"
+      "Welcome aboard! Set your company's four starting parameters and let's begin operations.",
+      true
     );
     return;
   }
 
-  if (stage === GAME_STAGES.BUSINESS_SETTINGS) {
-    stageHudEl.classList.add('hidden');
-    document.getElementById('modal-settings').classList.remove('hidden');
-    document.getElementById('hud-company-label').textContent = `${game.companyName} • ${game.playerName}`;
-    setObjective('Configure initial business settings');
-    setCaptainDialogue(
-      `Welcome, ${game.playerName}! Before we deploy, set ${game.companyName}'s machine capacity, asking price, and extraction target.`
-    );
-    return;
-  }
+  document.getElementById('hud-company-label').textContent = `${game.companyName} • ${game.playerName}`;
 
   if (stage === GAME_STAGES.DEPLOYMENT) {
     stageHudEl.classList.add('hidden');
@@ -220,8 +194,9 @@ function handleStageTransition(stage, location) {
     );
     setCaptainDialogue(
       game.diveCount === 1
-        ? "Everything is ready. Let's send our little mining machine down! Find the mineral deposits, extract the ore and bring it back."
-        : 'Lowering down to the ocean floor. All systems green!'
+        ? "Everything is ready. Let's send our mining machine down to the ocean floor!"
+        : 'Lowering mining machine to the seabed.',
+      true
     );
     sound.playSonarPing(620);
     return;
@@ -232,16 +207,17 @@ function handleStageTransition(stage, location) {
     diver.root.visible = false;
     stageHudEl.classList.add('hidden');
     setObjective('Returning to the surface vessel...');
-    setCaptainDialogue('Winching back up to the surface boat. Hold tight!');
+    setCaptainDialogue('Retrieving mining machine back to the boat. Hold tight!', true);
     sound.playSonarPing(520);
     return;
   }
 
   if (stage === GAME_STAGES.RULE_CHANGE_1) {
     stageHudEl.classList.add('hidden');
-    setObjective('Decision: Choose Extraction Rule (Rule Change 1)');
+    setObjective('Decision: Select Rule 1 — The Extraction Rule');
     setCaptainDialogue(
-      "Hey! We've got a problem. The water is becoming cloudy, the reef is covered in sediment, and waste has reached the surface!"
+      'Sediment is clouding the reef and oil waste has reached the surface! Select your Extraction Rule.',
+      true
     );
     openRuleModal('extraction');
     return;
@@ -249,8 +225,8 @@ function handleStageTransition(stage, location) {
 
   if (stage === GAME_STAGES.RULE_CHANGE_2) {
     stageHudEl.classList.add('hidden');
-    setObjective('Decision: Choose Mineral Sales Rule (Rule Change 2)');
-    setCaptainDialogue('Surface waters are clean! Now decide how your company will sell its extracted minerals.');
+    setObjective('Decision: Select Rule 2 — The Mineral Sales Rule');
+    setCaptainDialogue('Surface waters are clean! Now select your company’s Mineral Sales Rule.', true);
     openRuleModal('sales');
     return;
   }
@@ -259,7 +235,8 @@ function handleStageTransition(stage, location) {
     stageHudEl.classList.add('hidden');
     setObjective('Allocate the reef restoration budget');
     setCaptainDialogue(
-      'Good work! The surface looks much better, but the reef below is still damaged. Choose a restoration budget to outfit our diver.'
+      'Good work! Now allocate a restoration budget to outfit our reef restoration supplies.',
+      true
     );
     openNegotiationModal();
     return;
@@ -269,13 +246,14 @@ function handleStageTransition(stage, location) {
     stageHudEl.classList.add('hidden');
     setObjective('Tutorial Complete — Ready for Ongoing Operations');
     setCaptainDialogue(
-      'Your company is officially operational! Click Continue Operations to keep exploring, diving, mining, and protecting the ocean.'
+      'Your company is officially operational! Click Continue Operations to keep exploring, diving, and restoring.',
+      true
     );
     showSummaryModal({ isTutorialComplete: true });
     return;
   }
 
-  // Active Gameplay HUDs (Surface or Underwater)
+  // Active Gameplay Screens
   if (location === PLAYER_LOCATIONS.SURFACE) {
     if (!game.initialOilSpawned && game.environmentalWarningTriggered) {
       game.initialOilSpawned = true;
@@ -289,86 +267,111 @@ function handleStageTransition(stage, location) {
 
     stageHudEl.classList.remove('hidden');
     document.getElementById('hud-cleanup').classList.remove('hidden');
-    document.getElementById('hud-sell-box').classList.remove('hidden');
 
-    if (game.tutorialCompleted) {
-      setCaptainDialogue(
-        'On the surface! Steer the boat with WASD, skim any oil [E], sell ore, or press [F] to Dive to the ocean floor.'
-      );
-    } else {
-      setCaptainDialogue(
-        "We've got floating oil slicks on the surface. Steer the boat with WASD and press [E] to skim them, or press [F] to dive!"
-      );
-    }
+    // Captain Harlan speaks on the boat/surface
+    setCaptainDialogue(
+      game.tutorialCompleted
+        ? 'Back on the boat! Sell workshop ore, clean any surface oil, restore the reef, or press F to dive again.'
+        : 'Welcome back to the boat! Skim the floating oil slicks, sell your ore, or open Restore Reef.',
+      true
+    );
   } else if (location === PLAYER_LOCATIONS.UNDERWATER) {
     stageHudEl.classList.remove('hidden');
-    if (stage === GAME_STAGES.DIVE_RESTORATION || game.underwaterMode === 'DIVER') {
+    document.getElementById('hud-mining').classList.remove('hidden');
+
+    // IMPORTANT (Section 4): Remove Captain Harlan's persistent card during underwater mining!
+    setCaptainDialogue('', false);
+
+    if (stage === GAME_STAGES.DIVE_RESTORATION) {
       diver.root.visible = true;
       diver.root.position.set(
         fleet.crawler.root.position.x + 2.2,
         oceanEnv.getTerrainHeight(fleet.crawler.root.position.x + 2.2, fleet.crawler.root.position.z + 1.5) + 1.5,
         fleet.crawler.root.position.z + 1.5
       );
-      document.getElementById('hud-restoration').classList.remove('hidden');
-      setCaptainDialogue(
-        "Now it's time to repair what we've damaged. Swim with WASD, press [E] to clean & rebuild the coral reef, or press [F] to surface."
-      );
+      openRestorationScreen();
     } else {
       diver.root.visible = false;
-      document.getElementById('hud-mining').classList.remove('hidden');
-      setCaptainDialogue(
-        'Underwater on the seabed! Drive to a glowing mineral deposit and press [E] to mine, or press [F] anytime to Return to Surface.'
-      );
     }
   }
 
+  refreshStageHUD();
   updateContextualObjective();
 }
 
 // ============================================================================
-// 4. MODAL CONTROLLERS (SINGLE-PLAYER SETUP, SETTINGS, RULES, BUDGET)
+// 4. STARTING SCREEN — ALL FOUR STARTING PARAMETERS FUNCTIONAL
 // ============================================================================
-document.getElementById('btn-start-game').addEventListener('click', () => {
-  sound.resume();
-  const pName = document.getElementById('input-player-name').value;
-  const cName = document.getElementById('input-company-name').value;
-  game.setCompanyInfo(pName, cName);
-});
-
 let chosenCapacity = 35;
+let chosenWorkshopCap = 100;
+
 document.querySelectorAll('.cap-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.cap-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     chosenCapacity = Number(btn.dataset.cap);
-    document.getElementById('val-capacity').textContent = `${chosenCapacity} t`;
+    document.getElementById('val-capacity').textContent = `${chosenCapacity}T`;
     const opt = GAME_BALANCE.businessSettings.capacityOptions.find((o) => o.value === chosenCapacity);
     if (opt) document.getElementById('desc-capacity').textContent = opt.consequence;
   });
 });
 
+document.querySelectorAll('.wcap-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.wcap-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    chosenWorkshopCap = Number(btn.dataset.wcap);
+    document.getElementById('val-workshop').textContent = `${chosenWorkshopCap}T`;
+    const opt = GAME_BALANCE.businessSettings.workshopCapacityOptions.find(
+      (o) => o.value === chosenWorkshopCap
+    );
+    if (opt) document.getElementById('desc-workshop').textContent = opt.consequence;
+  });
+});
+
 const sliderPrice = document.getElementById('slider-price');
 sliderPrice.addEventListener('input', () => {
-  document.getElementById('val-price').textContent = `$${Number(sliderPrice.value).toLocaleString()} / t`;
+  document.getElementById('val-price').textContent = `$${Number(sliderPrice.value).toLocaleString()} / T`;
 });
 
 const sliderTarget = document.getElementById('slider-target');
 sliderTarget.addEventListener('input', () => {
-  document.getElementById('val-target').textContent = `${sliderTarget.value} t`;
+  document.getElementById('val-target').textContent = `${sliderTarget.value}T`;
 });
 
-document.getElementById('btn-confirm-settings').addEventListener('click', () => {
+document.getElementById('btn-start-game').addEventListener('click', () => {
   sound.resume();
-  game.confirmBusinessSettings(chosenCapacity, sliderPrice.value, sliderTarget.value);
+  const pName = document.getElementById('input-player-name').value;
+  const cName = document.getElementById('input-company-name').value;
+  const priceVal = Number(sliderPrice.value);
+  const targetVal = Number(sliderTarget.value);
+
+  game.startGameWithParameters({
+    playerName: pName,
+    companyName: cName,
+    machineCapacity: chosenCapacity,
+    workshopCapacity: chosenWorkshopCap,
+    oreSellingPrice: priceVal,
+    extractionTarget: targetVal
+  });
+  refreshStageHUD();
 });
 
-// Rule Change Modal
+// ============================================================================
+// 5. TWO-RULE CHANGING MECHANISM (ACCESSIBLE & CAPPED AT 2)
+// ============================================================================
 let pendingRuleStage = null;
 let pendingRuleOptionId = null;
+let stageBeforeRuleModal = null;
 
 function openRuleModal(stageKey) {
   const def = RULE_CHANGES[stageKey];
   if (!def) return;
+  if (stageKey === 'extraction' && game.rule1Enacted) return;
+  if (stageKey === 'sales' && game.rule2Enacted) return;
+  if (game.rulesUsedCount >= game.maxRuleChanges) return;
+
+  stageBeforeRuleModal = game.stage;
   pendingRuleStage = stageKey;
   pendingRuleOptionId = null;
 
@@ -405,7 +408,18 @@ function openRuleModal(stageKey) {
 
 document.getElementById('btn-confirm-rule').addEventListener('click', () => {
   if (!pendingRuleStage || !pendingRuleOptionId) return;
+  document.getElementById('modal-rule-change').classList.add('hidden');
   game.enactRuleChange(pendingRuleStage, pendingRuleOptionId);
+});
+
+// Allow clicking Rule 1 / Rule 2 badges in the HUD if still Pending
+document.getElementById('rule1-badge').addEventListener('click', () => {
+  if (game.stage === GAME_STAGES.SURFACE_INTRO) return;
+  if (!game.rule1Enacted) openRuleModal('extraction');
+});
+document.getElementById('rule2-badge').addEventListener('click', () => {
+  if (game.stage === GAME_STAGES.SURFACE_INTRO) return;
+  if (!game.rule2Enacted) openRuleModal('sales');
 });
 
 // Single-Player Restoration Budget Selection Modal
@@ -424,7 +438,7 @@ function openNegotiationModal() {
     card.innerHTML = `
       <h3>${t.label} (${formatCash(t.cost)})</h3>
       <p class="modal-desc">${t.desc}</p>
-      <button class="btn-primary">Approve ${t.label}</button>
+      <button type="button" class="btn-primary">Select ${t.label}</button>
     `;
     card.querySelector('button').addEventListener('click', () => {
       const res = game.finalizeBudget(t.id);
@@ -440,17 +454,28 @@ function openNegotiationModal() {
 }
 
 // ============================================================================
-// 5. RESTORATION MINI-GAMES UI
+// 6. REEF RESTORATION SCREEN (WITH BACK BUTTON, PUZZLE VARIETY & OUTCOMES)
 // ============================================================================
-function openCleanReefModal() {
-  document.getElementById('mg-badge').textContent = 'MINI-GAME A — CLEAN THE REEF';
-  document.getElementById('mg-title').textContent = 'Scrub Sediment Off the Coral';
-  document.getElementById('mg-desc').textContent =
-    'Click and drag across the dark sediment patches to clean the coral reef underneath.';
-  document.getElementById('mg-clean-view').classList.remove('hidden');
-  document.getElementById('mg-puzzle-view').classList.add('hidden');
-  document.getElementById('modal-restoration-minigame').classList.remove('hidden');
-  miniGames.initCleanReefGame(document.getElementById('clean-reef-canvas'));
+function openRestorationScreen() {
+  // Load or preserve current puzzle variation without resetting existing progress
+  const variation = miniGames.initWaterFlowPuzzle(false);
+
+  document.getElementById('mg-kits-count').textContent = `${game.restorationSupplies.coralKits} Kits`;
+  document.getElementById('mg-outcome-name').textContent = variation.outcome.name;
+  document.getElementById('mg-clean-pct').textContent = `${game.reefCleanProgress}%`;
+
+  if (game.reefCleanProgress < 90) {
+    document.getElementById('mg-badge').textContent = 'STEP 1 — CLEAN THE REEF';
+    document.getElementById('mg-title').textContent = `Clean Reef for ${variation.outcome.regionName}`;
+    document.getElementById('mg-desc').textContent =
+      'Click and drag across the dark sediment patches to clean the coral reef, or click Open Water-Flow Puzzle.';
+    document.getElementById('mg-clean-view').classList.remove('hidden');
+    document.getElementById('mg-puzzle-view').classList.add('hidden');
+    document.getElementById('modal-restoration-minigame').classList.remove('hidden');
+    miniGames.initCleanReefGame(document.getElementById('clean-reef-canvas'), false);
+  } else {
+    openWaterPuzzleView();
+  }
 }
 
 function drawTileSvg(tile, powered) {
@@ -465,12 +490,14 @@ function drawTileSvg(tile, powered) {
 }
 
 function renderWaterPuzzle() {
+  const variation = miniGames.initWaterFlowPuzzle(false);
   const { connected, visited } = miniGames.isWaterPathConnected();
   const gridEl = document.getElementById('puzzle-grid');
   gridEl.innerHTML = '';
 
   miniGames.grid.forEach((tile, idx) => {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = `puzzle-tile ${visited.has(idx) ? 'powered' : ''}`;
     btn.innerHTML = drawTileSvg(tile, visited.has(idx));
     btn.addEventListener('click', () => {
@@ -480,63 +507,92 @@ function renderWaterPuzzle() {
     gridEl.appendChild(btn);
   });
 
+  // Render varied coral species buttons for this variation's outcome
+  const slots = document.querySelectorAll('.coral-slot-btn');
+  slots.forEach((btn, idx) => {
+    const fragLabel = variation.outcome.fragments[idx] || `🪸 Coral Species ${idx + 1}`;
+    const isPlanted = miniGames.plantedSlots.has(idx);
+    btn.classList.toggle('planted', isPlanted);
+    btn.textContent = isPlanted ? `${fragLabel} ✓` : fragLabel;
+  });
+
+  document.getElementById('coral-outcome-banner').textContent =
+    `✓ Current connected! Plant ${variation.outcome.name} in ${variation.outcome.regionName}:`;
+
   if (connected) {
-    document.getElementById('r-puzzle-status').textContent = 'Connected ✓';
     document.getElementById('coral-placement-section').classList.remove('hidden');
+  } else {
+    document.getElementById('coral-placement-section').classList.add('hidden');
   }
 }
 
-function openWaterPuzzleModal() {
-  document.getElementById('mg-badge').textContent = 'MINI-GAME B — REBUILD THE REEF';
-  document.getElementById('mg-title').textContent = 'Water-Flow Logic Puzzle & Coral Placement';
-  document.getElementById('mg-desc').textContent =
-    'Rotate the coral-support channels to connect Fresh Current Inlet (top-left) to Coral Nursery Outlet (bottom-right).';
+function openWaterPuzzleView() {
+  const variation = miniGames.initWaterFlowPuzzle(false);
+  document.getElementById('mg-badge').textContent = 'STEP 2 — REBUILD THE REEF';
+  document.getElementById('mg-title').textContent = variation.title;
+  document.getElementById('mg-desc').textContent = variation.instruction;
+  document.getElementById('mg-kits-count').textContent = `${game.restorationSupplies.coralKits} Kits`;
+  document.getElementById('mg-outcome-name').textContent = variation.outcome.name;
+
   document.getElementById('mg-clean-view').classList.add('hidden');
   document.getElementById('mg-puzzle-view').classList.remove('hidden');
-  document.getElementById('coral-placement-section').classList.add('hidden');
 
   const clues = game.restorationSupplies.puzzleClues;
   document.getElementById('puzzle-clue-box').textContent =
-    clues >= 2
-      ? 'Marine Advisory Clue: Route the current from Top-Left → Top-Center → Center → Bottom-Center → Bottom-Right.'
-      : 'Marine Advisory Clue: Start by connecting the Top-Left tile horizontally to the center column.';
+    clues >= 2 ? variation.clueFull : variation.clueShort;
 
-  miniGames.initWaterFlowPuzzle();
-  // Reset coral slot buttons for repeatable restoration
-  document.querySelectorAll('.coral-slot-btn').forEach((btn, idx) => {
-    btn.classList.remove('planted');
-    btn.textContent = `🪸 Plant Coral ${idx + 1}`;
-  });
   renderWaterPuzzle();
   document.getElementById('modal-restoration-minigame').classList.remove('hidden');
 }
 
-document.getElementById('btn-open-clean-reef').addEventListener('click', openCleanReefModal);
-document.getElementById('btn-open-reef-underwater').addEventListener('click', openCleanReefModal);
-document.getElementById('btn-proceed-puzzle').addEventListener('click', () => {
-  document.getElementById('btn-open-puzzle').classList.remove('hidden');
-  openWaterPuzzleModal();
+// Back button on Reef Restoration screen: returns to previous gameplay screen without losing progress!
+function closeRestorationScreenBack() {
+  document.getElementById('modal-restoration-minigame').classList.add('hidden');
+  if (game.location === PLAYER_LOCATIONS.UNDERWATER && game.stage === GAME_STAGES.DIVE_RESTORATION) {
+    game.stage = game.tutorialCompleted ? GAME_STAGES.ONGOING_OPERATIONS : GAME_STAGES.UNDERWATER_MINING;
+    game.underwaterMode = 'CRAWLER';
+    diver.root.visible = false;
+  }
+  handleStageTransition(game.stage, game.location);
+}
+
+document.getElementById('btn-back-restoration').addEventListener('click', closeRestorationScreenBack);
+document.getElementById('btn-back-restoration-bottom').addEventListener('click', closeRestorationScreenBack);
+document.getElementById('btn-open-reef-surface').addEventListener('click', () => {
+  sound.resume();
+  openRestorationScreen();
 });
-document.getElementById('btn-open-puzzle').addEventListener('click', openWaterPuzzleModal);
+document.getElementById('btn-proceed-puzzle').addEventListener('click', openWaterPuzzleView);
 
 document.querySelectorAll('.coral-slot-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
-    if (btn.classList.contains('planted')) return;
-    btn.classList.add('planted');
-    btn.textContent = '🪸 Coral Planted ✓';
-    miniGames.coralsPlaced++;
+    const slotIdx = Number(btn.dataset.slot);
+    if (miniGames.plantedSlots.has(slotIdx)) return;
+    miniGames.plantedSlots.add(slotIdx);
+    miniGames.coralsPlaced = miniGames.plantedSlots.size;
     sound.playRestorationChime();
+    renderWaterPuzzle();
+
     if (miniGames.coralsPlaced >= miniGames.coralsRequired) {
+      const completedOutcome = miniGames.currentVariation?.outcome || null;
       setTimeout(() => {
         document.getElementById('modal-restoration-minigame').classList.add('hidden');
-        game.completePuzzleAndCoralPlacement();
-      }, 450);
+        miniGames.advanceToNextRestorationCycle();
+        game.completePuzzleAndCoralPlacement(completedOutcome);
+        if (completedOutcome) {
+          spawnWorldPopup(
+            fleet.surfaceVessel.group.position,
+            `Restored: ${completedOutcome.name}!`,
+            'popup-green'
+          );
+        }
+      }, 400);
     }
   });
 });
 
 // ============================================================================
-// 6. TUTORIAL COMPLETE, ONGOING SUMMARY & DEFEAT MODAL
+// 7. TUTORIAL COMPLETE & SUMMARY MODAL
 // ============================================================================
 function showSummaryModal({ isDefeat = false, reason = '', isTutorialComplete = false } = {}) {
   hideAllModals();
@@ -546,7 +602,6 @@ function showSummaryModal({ isDefeat = false, reason = '', isTutorialComplete = 
   const quoteEl = document.getElementById('end-quote');
   const gridEl = document.getElementById('end-summary-grid');
   const continueBtn = document.getElementById('btn-continue-operations');
-  const charBtn = document.getElementById('btn-open-constitution');
 
   if (isDefeat) {
     badgeEl.textContent = `CAMPAIGN DEFEAT — ${reason}`;
@@ -557,7 +612,6 @@ function showSummaryModal({ isDefeat = false, reason = '', isTutorialComplete = 
         ? 'Your company ran out of credits to sustain operations and environmental restoration.'
         : 'Ocean health fell below critical survival thresholds.';
     continueBtn.classList.add('hidden');
-    charBtn.classList.remove('hidden');
   } else if (isTutorialComplete) {
     badgeEl.textContent = 'TUTORIAL COMPLETE — ONGOING OPERATIONS UNLOCKED';
     badgeEl.className = 'modal-badge badge-green';
@@ -565,7 +619,6 @@ function showSummaryModal({ isDefeat = false, reason = '', isTutorialComplete = 
     quoteEl.textContent =
       '"Your company is officially operational. The ocean is still waiting to be explored."';
     continueBtn.classList.remove('hidden');
-    charBtn.classList.add('hidden');
   } else {
     badgeEl.textContent = res.badge;
     badgeEl.className = `modal-badge ${res.badgeClass}`;
@@ -573,29 +626,33 @@ function showSummaryModal({ isDefeat = false, reason = '', isTutorialComplete = 
     quoteEl.textContent =
       '"Your company is active. Continue diving, mining remaining deposits, and protecting the reef."';
     continueBtn.classList.remove('hidden');
-    charBtn.classList.add('hidden');
   }
+
+  const lastRestored =
+    game.completedRestorations.length > 0
+      ? game.completedRestorations[game.completedRestorations.length - 1].name
+      : res.reefRestored
+        ? 'Restored ✓'
+        : 'In Progress';
 
   gridEl.innerHTML = `
     <div class="summary-item"><span>Company</span><strong>${res.companyName} (${res.playerName})</strong></div>
-    <div class="summary-item"><span>Ore Extracted / Target</span><strong>${res.totalTonsMined}t / ${res.extractionTarget}t ${res.targetMet ? '✓' : 'In Progress'}</strong></div>
+    <div class="summary-item"><span>Ore Extracted / Target</span><strong>${res.totalTonsMined}T / ${res.extractionTarget}T</strong></div>
+    <div class="summary-item"><span>Machine / Workshop Cap</span><strong>${res.machineCapacity}T / ${res.workshopCapacity}T</strong></div>
     <div class="summary-item"><span>Company Credits</span><strong>${formatCash(res.credits)}</strong></div>
-    <div class="summary-item"><span>Surface Oil Cleaned</span><strong>${res.surfacePollutionCollected} / ${res.surfacePollutionTotal}</strong></div>
-    <div class="summary-item"><span>Reef Restored & Health</span><strong>${res.reefRestored ? 'Yes ✓' : 'In Progress'} (${res.oceanHealth}%)</strong></div>
+    <div class="summary-item"><span>Reef Sanctuary Restored</span><strong>${lastRestored} (${res.oceanHealth}%)</strong></div>
     <div class="summary-item"><span>Rule 1 & Rule 2</span><strong>${res.rule1} / ${res.rule2}</strong></div>
   `;
 
   document.getElementById('modal-ending').classList.remove('hidden');
 }
 
-// Continue Operations does NOT reset the game!
 document.getElementById('btn-continue-operations').addEventListener('click', () => {
   sound.resume();
   document.getElementById('modal-ending').classList.add('hidden');
   game.continueOperations();
 });
 
-// Explicit Replay Tutorial / Main Menu buttons (require player click)
 document.getElementById('btn-replay-tutorial').addEventListener('click', () => {
   window.location.reload();
 });
@@ -603,49 +660,8 @@ document.getElementById('btn-return-main-menu').addEventListener('click', () => 
   window.location.reload();
 });
 
-// Optional Between-Run Constitution Modal
-function openCharterModal() {
-  const charter = ConstitutionPersistence.loadCharter();
-  const listEl = document.getElementById('charter-options-list');
-  listEl.innerHTML = '';
-  const selected = new Set(charter.activePermanentAmendments || []);
-
-  GAME_BALANCE.constitutionOptions.forEach((opt) => {
-    const card = document.createElement('div');
-    card.className = `rule-option-card ${selected.has(opt.id) ? 'selected' : ''}`;
-    card.innerHTML = `
-      <h3>${opt.title}</h3>
-      <p class="rule-effect">${opt.shortTitle}</p>
-      <p class="modal-desc">${opt.desc}</p>
-    `;
-    card.addEventListener('click', () => {
-      if (selected.has(opt.id)) {
-        selected.delete(opt.id);
-      } else if (selected.size < 2) {
-        selected.add(opt.id);
-      }
-      card.classList.toggle('selected', selected.has(opt.id));
-    });
-    listEl.appendChild(card);
-  });
-
-  document.getElementById('btn-save-charter').onclick = () => {
-    ConstitutionPersistence.ratifyNewCharter(Array.from(selected), GAME_BALANCE.constitutionOptions, 'Manual Charter');
-    document.getElementById('modal-constitution').classList.add('hidden');
-  };
-  document.getElementById('btn-reset-charter').onclick = () => {
-    ConstitutionPersistence.resetCharter();
-    openCharterModal();
-  };
-
-  document.getElementById('modal-constitution').classList.remove('hidden');
-}
-
-document.getElementById('btn-view-charter').addEventListener('click', openCharterModal);
-document.getElementById('btn-open-constitution').addEventListener('click', openCharterModal);
-
 // ============================================================================
-// 7. SINGLE-PLAYER INPUT & REPEATABLE NAVIGATION ([F] DIVE / SURFACE)
+// 8. SINGLE-PLAYER INPUT & REPEATABLE NAVIGATION (E AND F)
 // ============================================================================
 const keysDown = new Set();
 window.addEventListener('keydown', (e) => {
@@ -674,15 +690,6 @@ function handleDiveOrSurfaceToggle() {
 function handleInteractAction() {
   sound.resume();
   if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
-    if (game.stage === GAME_STAGES.DIVE_RESTORATION || game.underwaterMode === 'DIVER') {
-      if (game.reefCleanProgress < 90) {
-        openCleanReefModal();
-      } else {
-        openWaterPuzzleModal();
-      }
-      return;
-    }
-
     if (game.miningProhibited) {
       spawnWorldPopup(
         fleet.crawler.root.position,
@@ -706,15 +713,25 @@ function handleOffloadOrEmptyAction() {
   if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
     if (game.oreInHold > 0) {
       const off = game.offloadCrawlerToBoat();
-      spawnWorldPopup(fleet.crawler.root.position, `Offloaded ${off}t Ore to Boat!`, 'popup-gold');
-    } else {
-      game.returnToSurface();
+      if (off > 0) {
+        spawnWorldPopup(
+          fleet.crawler.root.position,
+          `Offloaded ${off}T to Workshop (${game.oreStockpile}/${game.businessSettings.workshopCapacity}T)`,
+          'popup-gold'
+        );
+      } else {
+        spawnWorldPopup(
+          fleet.crawler.root.position,
+          `Workshop Full (${game.businessSettings.workshopCapacity}T)! Sell ore on surface.`,
+          'popup-gold'
+        );
+      }
     }
   } else if (game.location === PLAYER_LOCATIONS.SURFACE) {
     if (game.surfaceTankFill > 0) {
       game.surfaceTankFill = 0;
       sound.playRestorationChime();
-      spawnWorldPopup(fleet.surfaceVessel.group.position, 'Collection Tank Emptied!', 'popup-green');
+      spawnWorldPopup(fleet.surfaceVessel.group.position, 'Skimmer Tank Emptied!', 'popup-green');
     }
   }
 }
@@ -722,18 +739,17 @@ function handleOffloadOrEmptyAction() {
 function skimNearestOilSlick() {
   const vesselPos = fleet.surfaceVessel.group.position;
   const patch = surfaceOcean.oilPatches.find(
-    (p) => !p.cleaned && Math.hypot(p.x - vesselPos.x, p.z - vesselPos.z) < 8.2
+    (p) => !p.cleaned && Math.hypot(p.x - vesselPos.x, p.z - vesselPos.z) < 8.5
   );
   if (!patch) {
     spawnWorldPopup(vesselPos, 'Steer closer to a floating oil slick!', 'popup-gold');
     return;
   }
   if (game.surfaceTankFill >= game.surfaceTankCapacity) {
-    spawnWorldPopup(vesselPos, 'Tank full! Press [R] to Empty Tank.', 'popup-gold');
+    spawnWorldPopup(vesselPos, 'Tank full! Press R to Empty Tank.', 'popup-gold');
     return;
   }
 
-  // Progressive oil collection
   const skimStep = Math.min(patch.remaining, 5);
   patch.remaining -= skimStep;
   game.surfaceTankFill = Math.min(game.surfaceTankCapacity, game.surfaceTankFill + skimStep);
@@ -771,16 +787,11 @@ document.getElementById('btn-mine-toggle').addEventListener('click', handleInter
 document.getElementById('btn-skim-oil').addEventListener('click', skimNearestOilSlick);
 document.getElementById('btn-empty-tank').addEventListener('click', handleOffloadOrEmptyAction);
 
-// Repeatable Dive / Surface button bindings
 document.getElementById('btn-dive-from-surface').addEventListener('click', () => {
   sound.resume();
   game.diveToOceanFloor(false);
 });
 document.getElementById('btn-surface-from-mining').addEventListener('click', () => {
-  sound.resume();
-  game.returnToSurface();
-});
-document.getElementById('btn-surface-from-restoration').addEventListener('click', () => {
   sound.resume();
   game.returnToSurface();
 });
@@ -791,63 +802,52 @@ document.getElementById('btn-sell-ore').addEventListener('click', () => {
   if (!res.ok) {
     msgEl.textContent = res.error;
   } else {
-    msgEl.textContent = `Sold ${res.tons}t for ${formatCash(res.totalPayout)}! ${res.buyerNote}`;
+    msgEl.textContent = `Sold ${res.tons}T at $${res.unitPrice.toLocaleString()}/T for ${formatCash(res.totalPayout)}!`;
+    refreshStageHUD();
     updateContextualObjective();
   }
-});
-
-document.getElementById('btn-up-hopper').addEventListener('click', () => {
-  const res = game.purchaseUpgrade('hopper');
-  document.getElementById('s-status-msg').textContent = res.ok ? res.label : res.error;
-});
-document.getElementById('btn-up-drill').addEventListener('click', () => {
-  const res = game.purchaseUpgrade('drill');
-  document.getElementById('s-status-msg').textContent = res.ok ? res.label : res.error;
 });
 
 document.getElementById('btn-mute').addEventListener('click', () => {
   const muted = sound.toggleMute();
   document.getElementById('btn-mute').textContent = muted ? '🔇' : '🔊';
 });
-document.getElementById('btn-help').addEventListener('click', () => {
-  document.getElementById('modal-help').classList.remove('hidden');
-});
-document.getElementById('btn-close-help').addEventListener('click', () => {
-  document.getElementById('modal-help').classList.add('hidden');
-});
-document.getElementById('btn-help-summary').addEventListener('click', () => {
-  document.getElementById('modal-help').classList.add('hidden');
-  showSummaryModal({ isDefeat: false, isTutorialComplete: false });
-});
 
 // ============================================================================
-// 8. MAIN ANIMATION LOOP & CAMERA TRANSITIONS
+// 9. MAIN ANIMATION LOOP & AUTHORITATIVE HUD REFRESH
 // ============================================================================
 const clock = new THREE.Clock();
 
 function refreshStageHUD() {
-  const health = game.getGlobalOceanHealth();
-  if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
-    document.getElementById('m-credits').textContent = formatCash(game.credits);
-    document.getElementById('m-hold').textContent = `${Math.round(game.oreInHold)} / ${game.businessSettings.machineCapacity} t`;
-    document.getElementById('m-extracted').textContent = `${Math.round(game.totalTonsMined)} / ${game.businessSettings.extractionTarget} t`;
-    document.getElementById('m-reserves').textContent = `${game.getTotalRemainingSeabedOre()} t`;
-    document.getElementById('m-health').textContent = `${health}%`;
-    document.getElementById('m-prompt').textContent = game.nearestDeposit
-      ? `[E] ${game.isMiningActive ? 'Stop Mining' : 'Mine'} ${game.nearestDeposit.name} • [F] Surface`
-      : 'Drive with WASD to a glowing deposit • Press [F] to Surface';
+  const totalReserves = game.getTotalRemainingSeabedOre();
 
-    document.getElementById('r-credits').textContent = formatCash(game.credits);
-    document.getElementById('r-clean-pct').textContent = `${game.reefCleanProgress}%`;
-    document.getElementById('r-health').textContent = `${health}%`;
+  if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
+    document.getElementById('m-extracted').textContent =
+      `${Math.round(game.totalTonsMined)} / ${game.businessSettings.extractionTarget}T`;
+    document.getElementById('m-hold').textContent =
+      `${Math.round(game.oreInHold)} / ${game.businessSettings.machineCapacity}T`;
+
+    if (game.nearestDeposit) {
+      const depRem = Math.round(game.nearestDeposit.remainingTons);
+      document.getElementById('m-reserves').textContent = `${depRem}T (${totalReserves}T Total)`;
+      document.getElementById('m-deposit-feedback').textContent = game.isMiningActive
+        ? `Mining ${game.nearestDeposit.name} (${depRem}T remaining)...`
+        : `Near ${game.nearestDeposit.name} (${depRem}T remaining)`;
+    } else {
+      document.getElementById('m-reserves').textContent = `${totalReserves}T`;
+      document.getElementById('m-deposit-feedback').textContent =
+        'Approach a glowing mineral deposit on the seabed';
+    }
   } else if (game.location === PLAYER_LOCATIONS.SURFACE) {
     document.getElementById('c-credits').textContent = formatCash(game.credits);
-    document.getElementById('c-cleaned').textContent = `${game.surfacePollutionCollected} / ${game.surfacePollutionTotal}`;
-    document.getElementById('c-tank').textContent = `${game.surfaceTankFill} / ${game.surfaceTankCapacity}`;
-    document.getElementById('c-stockpile').textContent = `${game.oreStockpile} t`;
-    document.getElementById('c-health').textContent = `${health}%`;
-    document.getElementById('s-tons').textContent = `${game.oreStockpile} t`;
-    document.getElementById('s-rule').textContent = game.rule2Enacted ? game.rule2Enacted.shortTitle : 'Open';
+    document.getElementById('c-stockpile').textContent =
+      `${Math.round(game.oreStockpile)} / ${game.businessSettings.workshopCapacity}T`;
+    document.getElementById('c-price').textContent =
+      `$${game.businessSettings.oreSellingPrice.toLocaleString()} / T`;
+    document.getElementById('c-cleaned').textContent =
+      `${game.surfacePollutionCollected} / ${game.surfacePollutionTotal}`;
+    document.getElementById('c-tank').textContent =
+      `${game.surfaceTankFill} / ${game.surfaceTankCapacity}`;
   }
 }
 
@@ -895,28 +895,6 @@ function updateDeploymentOrAscent() {
   }
 }
 
-function updateDiverControls(dt, elapsed) {
-  const fwd =
-    (keysDown.has('w') || keysDown.has('arrowup') ? 1 : 0) -
-    (keysDown.has('s') || keysDown.has('arrowdown') ? 1 : 0);
-  const turn =
-    (keysDown.has('d') || keysDown.has('arrowright') ? 1 : 0) -
-    (keysDown.has('a') || keysDown.has('arrowleft') ? 1 : 0);
-  const vert = (keysDown.has(' ') ? 1 : 0) - (keysDown.has('shift') ? 1 : 0);
-
-  const isMoving = Math.abs(fwd) > 0.01 || Math.abs(turn) > 0.01 || Math.abs(vert) > 0.01;
-  if (isMoving) {
-    diver.root.rotation.y -= turn * diver.turnSpeed * dt;
-    const fVec = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), diver.root.rotation.y);
-    const nx = Math.max(-24, Math.min(24, diver.root.position.x + fVec.x * fwd * diver.speed * dt));
-    const nz = Math.max(-24, Math.min(24, diver.root.position.z + fVec.z * fwd * diver.speed * dt));
-    const minH = oceanEnv.getTerrainHeight(nx, nz) + 0.8;
-    const ny = Math.max(minH, Math.min(18, diver.root.position.y + vert * 4.5 * dt));
-    diver.root.position.set(nx, ny, nz);
-  }
-  diver.animate(elapsed, isMoving, false);
-}
-
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(0.05, clock.getDelta());
@@ -938,16 +916,9 @@ function animate() {
   if (game.location === PLAYER_LOCATIONS.DIVING || game.location === PLAYER_LOCATIONS.SURFACING) {
     updateDeploymentOrAscent();
   } else if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
-    if (game.stage === GAME_STAGES.DIVE_RESTORATION || game.underwaterMode === 'DIVER') {
-      updateDiverControls(dt, elapsed);
-      camRig.desiredTarget.copy(diver.root.position);
-      camRig.desiredPos.copy(diver.root.position).add(new THREE.Vector3(7, 5, 9));
-    } else {
-      camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 1, 0));
-      camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(11, 10, 14));
-    }
+    camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 1, 0));
+    camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(11, 10, 14));
   } else {
-    // Surface location: keep crawler parked on boat deck and follow boat
     placeCrawlerOnBoatDeck();
     const vPos = fleet.surfaceVessel.group.position;
     camRig.desiredTarget.copy(vPos).add(new THREE.Vector3(0, 1.5, 0));

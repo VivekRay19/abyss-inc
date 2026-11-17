@@ -33,6 +33,7 @@ export class ConstitutionPersistence {
   }
 
   static loadCharter() {
+    if (typeof localStorage === 'undefined') return this.getDefaultCharter();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return this.getDefaultCharter();

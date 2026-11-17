@@ -18,7 +18,7 @@
     <div id="world-labels-layer"></div>
 
     <!-- ====================================================================
-         TOP INDUSTRIAL-MARINE STATUS BAR
+         TOP STATUS BAR
          ==================================================================== -->
     <header class="top-bar">
       <div class="brand-pill">
@@ -30,87 +30,84 @@
       </div>
 
       <div class="objective-pill">
-        <span class="obj-label" id="hud-mode-badge">TUTORIAL</span>
+        <span class="obj-label" id="hud-mode-badge">OBJECTIVE</span>
         <span class="obj-text" id="hud-objective">Establish your mining company</span>
       </div>
 
       <div class="top-right-pills">
-        <div class="rule-status-pill" id="rule-status-pill" title="Active In-Campaign Company Rules">
-          <span id="rule1-badge" class="rule-chip">Rule 1: Pending</span>
-          <span id="rule2-badge" class="rule-chip">Rule 2: Pending</span>
+        <div class="rule-status-pill" id="rule-status-pill" title="Click a Pending Rule to review or enact (Max 2 per campaign)">
+          <button type="button" id="rule1-badge" class="rule-chip">Rule 1: Pending</button>
+          <button type="button" id="rule2-badge" class="rule-chip">Rule 2: Pending</button>
         </div>
-        <button class="icon-btn" id="btn-help" title="Controls & Operations Guide">?</button>
         <button class="icon-btn" id="btn-mute" title="Toggle Sound">🔊</button>
       </div>
     </header>
 
     <!-- ====================================================================
-         CONTEXTUAL SINGLE-PLAYER HUD (RIGHT SIDE)
+         CONTEXTUAL SINGLE-PLAYER HUD (BOTTOM-RIGHT)
          ==================================================================== -->
     <aside class="stage-hud hidden" id="stage-hud">
-      <!-- Underwater Operations HUD -->
+      <!-- 1. UNDERWATER SCREEN (STRICTLY SIMPLIFIED: ONLY E AND F CONTROLS) -->
       <div id="hud-mining" class="hud-panel hidden">
-        <div class="hud-panel-title">🌊 SEABED OPERATIONS</div>
-        <div class="hud-row"><span>Company Credits</span><strong id="m-credits" class="val-gold">$120K</strong></div>
-        <div class="hud-row"><span>Crawler Hold</span><strong id="m-hold" class="val-cyan">0 / 35 t</strong></div>
-        <div class="hud-row"><span>Ore Extracted</span><strong id="m-extracted">0 / 60 t</strong></div>
-        <div class="hud-row"><span>Seabed Reserves</span><strong id="m-reserves">240 t</strong></div>
-        <div class="hud-row"><span>Ocean Health</span><strong id="m-health" class="val-green">96%</strong></div>
-        <div class="hud-prompt" id="m-prompt">Move with WASD • Approach a glowing mineral deposit</div>
-        <div class="hud-actions">
-          <button class="btn-primary" id="btn-mine-toggle">⛏️ Mine [E]</button>
-          <button class="btn-secondary" id="btn-open-reef-underwater">🪸 Restore Reef</button>
+        <div class="hud-panel-title">🌊 UNDERWATER MINING</div>
+        <div class="hud-row">
+          <span>Ore Extracted</span>
+          <strong id="m-extracted" class="val-gold">0 / 50T</strong>
         </div>
-        <button class="btn-dive-nav" id="btn-surface-from-mining">⬆️ RETURN TO SURFACE [F]</button>
+        <div class="hud-row">
+          <span>Mining Machine Capacity</span>
+          <strong id="m-hold" class="val-cyan">0 / 35T</strong>
+        </div>
+        <div class="hud-row">
+          <span>Deposit Remaining</span>
+          <strong id="m-reserves" class="val-green">240T</strong>
+        </div>
+        <div class="hud-prompt" id="m-deposit-feedback">Approach a glowing mineral deposit on the seabed</div>
+        <div class="hud-actions underwater-controls-box">
+          <button class="btn-primary" id="btn-mine-toggle">E — Mine Ore</button>
+          <button class="btn-dive-nav" id="btn-surface-from-mining">F — Return to Surface</button>
+        </div>
       </div>
 
-      <!-- Surface Vessel Operations HUD -->
+      <!-- 2. SURFACE SCREEN -->
       <div id="hud-cleanup" class="hud-panel hidden">
-        <div class="hud-panel-title">🚢 SURFACE VESSEL OPERATIONS</div>
-        <div class="hud-row"><span>Company Credits</span><strong id="c-credits" class="val-gold">$120K</strong></div>
-        <div class="hud-row"><span>Oil Slicks Cleaned</span><strong id="c-cleaned" class="val-cyan">0 / 8</strong></div>
-        <div class="hud-row"><span>Skimmer Tank</span><strong id="c-tank">0 / 40</strong></div>
-        <div class="hud-row"><span>Boat Ore Stockpile</span><strong id="c-stockpile">0 t</strong></div>
-        <div class="hud-row"><span>Ocean Health</span><strong id="c-health" class="val-green">82%</strong></div>
-        <div class="hud-prompt" id="c-prompt">Steer Boat with WASD • Press [E] near floating oil slicks</div>
-        <div class="hud-actions">
-          <button class="btn-primary" id="btn-skim-oil">🛢️ Skim Oil [E]</button>
-          <button class="btn-secondary" id="btn-empty-tank">♻️ Empty Tank [R]</button>
+        <div class="hud-panel-title">🚢 SURFACE OPERATIONS</div>
+        <div class="hud-row">
+          <span>Company Credits</span>
+          <strong id="c-credits" class="val-gold">$120K</strong>
         </div>
-        <button class="btn-dive-nav" id="btn-dive-from-surface">⬇️ DIVE TO OCEAN FLOOR [F]</button>
-      </div>
-
-      <!-- Dive Restoration HUD -->
-      <div id="hud-restoration" class="hud-panel hidden">
-        <div class="hud-panel-title">🤿 REEF RESTORATION DIVE</div>
-        <div class="hud-row"><span>Company Credits</span><strong id="r-credits" class="val-gold">$120K</strong></div>
-        <div class="hud-row"><span>Reef Cleaned</span><strong id="r-clean-pct" class="val-cyan">0%</strong></div>
-        <div class="hud-row"><span>Water Flow Puzzle</span><strong id="r-puzzle-status">Pending</strong></div>
-        <div class="hud-row"><span>Ocean Health</span><strong id="r-health" class="val-green">75%</strong></div>
-        <div class="hud-prompt" id="r-prompt">Swim with WASD (Space/Shift up-down) • [E] Restore Reef</div>
-        <div class="hud-actions">
-          <button class="btn-primary" id="btn-open-clean-reef">🧽 Clean Reef [E]</button>
-          <button class="btn-secondary hidden" id="btn-open-puzzle">🧩 Rebuild Reef</button>
+        <div class="hud-row">
+          <span>Workshop Storage</span>
+          <strong id="c-stockpile" class="val-cyan">0 / 100T</strong>
         </div>
-        <button class="btn-dive-nav" id="btn-surface-from-restoration">⬆️ RETURN TO SURFACE [F]</button>
-      </div>
-
-      <!-- Ore Sale & Equipment Upgrades Panel (On Surface) -->
-      <div id="hud-sell-box" class="hud-panel hidden">
-        <div class="hud-panel-title">💼 CARGO & UPGRADES</div>
-        <div class="hud-row"><span>Stockpile Ready</span><strong id="s-tons">0 t</strong></div>
-        <div class="hud-row"><span>Sales Policy</span><strong id="s-rule">Pending</strong></div>
-        <button class="btn-gold" id="btn-sell-ore">💰 Sell Extracted Ore</button>
-        <div class="hud-actions upgrade-row">
-          <button class="btn-secondary btn-small-up" id="btn-up-hopper" title="Expand crawler capacity by +15t">+15t Hold ($35K)</button>
-          <button class="btn-secondary btn-small-up" id="btn-up-drill" title="Increase mining extraction speed by +25%">+25% Drill ($40K)</button>
+        <div class="hud-row">
+          <span>Ore Selling Price</span>
+          <strong id="c-price">$2,800 / T</strong>
+        </div>
+        <div class="hud-row">
+          <span>Oil Slicks Cleaned</span>
+          <strong id="c-cleaned" class="val-green">0 / 6</strong>
+        </div>
+        <div class="hud-row">
+          <span>Skimmer Tank</span>
+          <strong id="c-tank">0 / 30</strong>
+        </div>
+        <div class="hud-actions">
+          <button class="btn-primary" id="btn-skim-oil">E — Skim Oil</button>
+          <button class="btn-secondary" id="btn-empty-tank">R — Empty Tank</button>
+        </div>
+        <div class="hud-actions" style="margin-top: 8px;">
+          <button class="btn-gold" id="btn-sell-ore">💰 Sell Workshop Ore</button>
+          <button class="btn-secondary" id="btn-open-reef-surface">🪸 Restore Reef</button>
         </div>
         <div id="s-status-msg" class="hud-subnote"></div>
+        <button class="btn-dive-nav" id="btn-dive-from-surface">F — Dive to Ocean Floor</button>
       </div>
     </aside>
 
     <!-- ====================================================================
-         CAPTAIN DIALOGUE CARD (BOTTOM-LEFT)
+         CAPTAIN HARLAN DIALOGUE CARD (SHOWN ON SURFACE / STORY TRANSITIONS ONLY,
+         HIDDEN DURING UNDERWATER MINING)
          ==================================================================== -->
     <section class="captain-card" id="captain-card">
       <div class="captain-avatar">👨‍✈️</div>
@@ -123,90 +120,94 @@
     </section>
 
     <!-- ====================================================================
-         MODAL 1: SINGLE-PLAYER COMPANY SETUP (STAGE 1)
+         MODAL 1: UNIFIED STARTING SCREEN (PLAYER, COMPANY & 4 STARTING PARAMETERS)
          ==================================================================== -->
     <div class="modal-backdrop" id="modal-intro">
-      <div class="modal-card">
-        <div class="modal-badge">STAGE 1 — WELCOME ABOARD</div>
+      <div class="modal-card modal-wide">
+        <div class="modal-badge">WELCOME ABOARD — STARTING PARAMETERS</div>
         <h1>ABYSS INC.</h1>
         <p class="modal-subtitle">The Ocean Is Not for Sale</p>
-        <p class="modal-desc">
-          "The ocean is full of valuable resources. We've got our boat, our equipment and a whole ocean to explore. Let's get started!"
-        </p>
 
-        <div class="form-group">
-          <label for="input-player-name">Player Name</label>
-          <input type="text" id="input-player-name" value="Alex" maxlength="24" />
+        <div class="starting-grant-banner">
+          <span>Starting Company Credits (Fixed Initial Grant):</span>
+          <strong class="val-gold">$120,000 ($120K)</strong>
         </div>
 
-        <div class="form-group">
-          <label for="input-company-name">Company Name</label>
-          <input type="text" id="input-company-name" value="DeepBlue Co." maxlength="28" />
+        <div class="setup-two-col">
+          <div class="form-group">
+            <label for="input-player-name">Player Name</label>
+            <input type="text" id="input-player-name" value="Alex" maxlength="24" />
+          </div>
+          <div class="form-group">
+            <label for="input-company-name">Company Name</label>
+            <input type="text" id="input-company-name" value="DeepBlue Co." maxlength="28" />
+          </div>
+        </div>
+
+        <!-- 1. Mining Machine Capacity -->
+        <div class="setting-block">
+          <div class="setting-header">
+            <span>1. Mining Machine Capacity</span>
+            <strong id="val-capacity">35T</strong>
+          </div>
+          <div class="cap-options" id="machine-cap-options">
+            <button type="button" class="cap-btn" data-cap="20">20T</button>
+            <button type="button" class="cap-btn active" data-cap="35">35T</button>
+            <button type="button" class="cap-btn" data-cap="50">50T</button>
+          </div>
+          <div class="setting-consequence" id="desc-capacity">
+            Determines how much ore the mining machine can carry before returning to the boat.
+          </div>
+        </div>
+
+        <!-- 2. Workshop Capacity -->
+        <div class="setting-block">
+          <div class="setting-header">
+            <span>2. Workshop Capacity</span>
+            <strong id="val-workshop">100T</strong>
+          </div>
+          <div class="cap-options" id="workshop-cap-options">
+            <button type="button" class="wcap-btn" data-wcap="50">50T</button>
+            <button type="button" class="wcap-btn active" data-wcap="100">100T</button>
+            <button type="button" class="wcap-btn" data-wcap="150">150T</button>
+          </div>
+          <div class="setting-consequence" id="desc-workshop">
+            Determines how much extracted ore can be stored at the boat's workshop before selling.
+          </div>
+        </div>
+
+        <!-- 3. Ore Selling Price -->
+        <div class="setting-block">
+          <div class="setting-header">
+            <span>3. Ore Selling Price</span>
+            <strong id="val-price">$2,800 / T</strong>
+          </div>
+          <input type="range" id="slider-price" min="2000" max="4500" step="500" value="2800" />
+          <div class="setting-consequence" id="desc-price">
+            Determines the credits earned per tonne when minerals are sold from the workshop.
+          </div>
+        </div>
+
+        <!-- 4. Extraction Target -->
+        <div class="setting-block">
+          <div class="setting-header">
+            <span>4. Extraction Target (Seabed Deposit Reserve: 240T)</span>
+            <strong id="val-target">50T</strong>
+          </div>
+          <input type="range" id="slider-target" min="40" max="120" step="10" value="50" />
+          <div class="setting-consequence" id="desc-target">
+            Determines your mission extraction objective and progress displayed during gameplay.
+          </div>
         </div>
 
         <div class="modal-footer">
           <button class="btn-primary btn-large" id="btn-start-game">Start Game</button>
-          <button class="btn-text" id="btn-view-charter">View Optional Between-Run Charter</button>
         </div>
       </div>
     </div>
 
     <!-- ====================================================================
-         MODAL 2: INITIAL BUSINESS SETTINGS (PART 3)
-         ==================================================================== -->
-    <div class="modal-backdrop hidden" id="modal-settings">
-      <div class="modal-card modal-wide">
-        <div class="modal-badge">COMPANY SETUP — INITIAL BUSINESS SETTINGS</div>
-        <h2>Set Your Starting Parameters</h2>
-        <p class="modal-desc">
-          Configure your company's initial parameters before deploying the mining machine. (These are separate from the two in-campaign dynamic rule changes.)
-        </p>
-
-        <div class="setting-block">
-          <div class="setting-header">
-            <span>1. Mining Machine Capacity</span>
-            <strong id="val-capacity">35 t</strong>
-          </div>
-          <div class="cap-options">
-            <button type="button" class="cap-btn" data-cap="20">Compact (20t)</button>
-            <button type="button" class="cap-btn active" data-cap="35">Standard (35t)</button>
-            <button type="button" class="cap-btn" data-cap="50">Heavy (50t)</button>
-          </div>
-          <div class="setting-consequence" id="desc-capacity">
-            Balanced cargo hold for steady extraction before returning to the boat.
-          </div>
-        </div>
-
-        <div class="setting-block">
-          <div class="setting-header">
-            <span>2. Ore Selling Price</span>
-            <strong id="val-price">$2,800 / t</strong>
-          </div>
-          <input type="range" id="slider-price" min="2000" max="4500" step="500" value="2800" />
-          <div class="setting-consequence" id="desc-price">
-            Higher selling price increases potential revenue, but prices above $3,500/t carry commercial buyer pushback risk.
-          </div>
-        </div>
-
-        <div class="setting-block">
-          <div class="setting-header">
-            <span>3. Extraction Target (Finite Seabed: 240t)</span>
-            <strong id="val-target">60 t</strong>
-          </div>
-          <input type="range" id="slider-target" min="40" max="100" step="10" value="60" />
-          <div class="setting-consequence" id="desc-target">
-            Higher extraction target yields more ore, but increases seabed disturbance and reef damage.
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn-primary btn-large" id="btn-confirm-settings">CONFIRM BUSINESS SETTINGS</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ====================================================================
-         MODAL 3: DYNAMIC RULE CHANGE (RULE 1 & RULE 2)
+         MODAL 2: DYNAMIC RULE SELECTION SCREEN (MAX 2 PER CAMPAIGN)
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-rule-change">
       <div class="modal-card modal-wide">
@@ -223,14 +224,14 @@
     </div>
 
     <!-- ====================================================================
-         MODAL 4: RESTORATION BUDGET ALLOCATION (SINGLE-PLAYER)
+         MODAL 3: RESTORATION BUDGET ALLOCATION
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-negotiation">
       <div class="modal-card modal-wide">
         <div class="modal-badge badge-cyan">RESOURCE ALLOCATION — REEF RESTORATION BUDGET</div>
         <h2>Select Reef Restoration Funding</h2>
         <p class="modal-desc" id="neg-desc">
-          Captain Harlan & the Science Advisory recommend allocating a Standard or Generous budget so your diving gear can scrub sediment and rebuild the coral reef efficiently.
+          Allocate a restoration budget to outfit your reef restoration supplies and puzzle guidance.
         </p>
         <div class="neg-credits-bar">
           Available Company Credits: <strong id="neg-credits" class="val-gold">$120K</strong>
@@ -242,26 +243,34 @@
     </div>
 
     <!-- ====================================================================
-         MODAL 5: REEF RESTORATION MINI-GAMES (A: CLEAN, B: PUZZLE + CORAL)
+         MODAL 4: REEF RESTORATION SCREEN (WITH BACK BUTTON, PUZZLE VARIETY & OUTCOMES)
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-restoration-minigame">
       <div class="modal-card modal-wide">
-        <div class="modal-badge badge-green" id="mg-badge">MINI-GAME A — CLEAN THE REEF</div>
-        <h2 id="mg-title">Scrub Sediment Off the Coral</h2>
+        <div class="modal-top-nav">
+          <span class="modal-badge badge-green" id="mg-badge">REEF RESTORATION</span>
+          <button type="button" class="btn-secondary btn-back" id="btn-back-restoration">← Back</button>
+        </div>
+        <h2 id="mg-title">Restore the Damaged Coral Reef</h2>
         <p class="modal-desc" id="mg-desc">
-          Click and drag across the dark sediment patches to clean the coral reef underneath.
+          Scrub away dark sediment on the coral, then solve the water-flow puzzle to plant varied coral species.
         </p>
 
-        <!-- Mini-Game A: Canvas Scrubbing -->
+        <div class="restoration-materials-bar" id="mg-materials-bar">
+          <span>Available Restoration Kits: <strong id="mg-kits-count" class="val-cyan">4 Kits</strong></span>
+          <span>Target Formation: <strong id="mg-outcome-name" class="val-green">Crimson Staghorn Thicket</strong></span>
+        </div>
+
+        <!-- Step A: Interactive Sediment Scrubbing -->
         <div id="mg-clean-view">
-          <canvas id="clean-reef-canvas" width="460" height="240"></canvas>
+          <canvas id="clean-reef-canvas" width="460" height="220"></canvas>
           <div class="mg-progress-row">
-            <span>Reef Cleaned: <strong id="mg-clean-pct">0%</strong></span>
-            <button class="btn-primary hidden" id="btn-proceed-puzzle">Proceed to Water-Flow Puzzle →</button>
+            <span>Sediment Cleaned: <strong id="mg-clean-pct">0%</strong></span>
+            <button type="button" class="btn-primary" id="btn-proceed-puzzle">Open Water-Flow Puzzle →</button>
           </div>
         </div>
 
-        <!-- Mini-Game B: Water-Flow Logic Puzzle & Coral Placement -->
+        <!-- Step B: Shuffled Water-Flow Logic Puzzle & Varied Coral Placement -->
         <div id="mg-puzzle-view" class="hidden">
           <div class="puzzle-clue-box" id="puzzle-clue-box"></div>
           <div class="puzzle-wrapper">
@@ -270,19 +279,25 @@
             <div class="puzzle-io-label">→ 🪸 Coral Nursery Outlet</div>
           </div>
           <div id="coral-placement-section" class="coral-place-box hidden">
-            <p class="val-green">✓ Water flow connected! Click each slot to plant coral fragments:</p>
+            <p class="val-green" id="coral-outcome-banner">
+              ✓ Current connected! Plant your restoration species to rebuild this reef section:
+            </p>
             <div class="coral-slots" id="coral-slots">
-              <button class="coral-slot-btn" data-slot="0">🪸 Plant Coral 1</button>
-              <button class="coral-slot-btn" data-slot="1">🪸 Plant Coral 2</button>
-              <button class="coral-slot-btn" data-slot="2">🪸 Plant Coral 3</button>
+              <button type="button" class="coral-slot-btn" data-slot="0">🪸 Plant Species 1</button>
+              <button type="button" class="coral-slot-btn" data-slot="1">🪸 Plant Species 2</button>
+              <button type="button" class="coral-slot-btn" data-slot="2">🪸 Plant Species 3</button>
             </div>
           </div>
+        </div>
+
+        <div class="modal-footer modal-footer-row" style="margin-top: 14px;">
+          <button type="button" class="btn-secondary" id="btn-back-restoration-bottom">← Back to Gameplay</button>
         </div>
       </div>
     </div>
 
     <!-- ====================================================================
-         MODAL 6: TUTORIAL COMPLETE / OPERATIONS SUMMARY (NO FORCED RESET!)
+         MODAL 5: TUTORIAL COMPLETE / OPERATIONS SUMMARY
          ==================================================================== -->
     <div class="modal-backdrop hidden" id="modal-ending">
       <div class="modal-card modal-wide">
@@ -296,46 +311,6 @@
           <button class="btn-primary btn-large" id="btn-continue-operations">CONTINUE OPERATIONS</button>
           <button class="btn-secondary" id="btn-replay-tutorial">Replay Tutorial</button>
           <button class="btn-text" id="btn-return-main-menu">Return to Main Menu</button>
-          <button class="btn-secondary hidden" id="btn-open-constitution">Ratify Between-Run Charter</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ====================================================================
-         MODAL 7: OPTIONAL BETWEEN-RUN CONSTITUTION
-         ==================================================================== -->
-    <div class="modal-backdrop hidden" id="modal-constitution">
-      <div class="modal-card modal-wide">
-        <div class="modal-badge">OPTIONAL BETWEEN-RUN META-PROGRESSION</div>
-        <h2>Company Charter (Between-Run Amendments)</h2>
-        <p class="modal-desc">
-          This optional system persists between runs and does <strong>not</strong> count as either of the 2 in-campaign dynamic rule changes. Ecological laws remain immutable.
-        </p>
-        <div id="charter-options-list" class="neg-grid"></div>
-        <div class="modal-footer">
-          <button class="btn-primary" id="btn-save-charter">Save & Close</button>
-          <button class="btn-text" id="btn-reset-charter">Reset Charter</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ====================================================================
-         MODAL 8: SINGLE-PLAYER CONTROLS & OPERATIONS GUIDE
-         ==================================================================== -->
-    <div class="modal-backdrop hidden" id="modal-help">
-      <div class="modal-card">
-        <div class="modal-badge">OPERATIONS MANUAL</div>
-        <h2>Controls & Navigation</h2>
-        <ul class="help-list">
-          <li><strong>Steer Boat / Drive Crawler / Swim Diver:</strong> W A S D or Arrow Keys</li>
-          <li><strong>Dive to Ocean Floor / Return to Surface:</strong> F</li>
-          <li><strong>Interact / Mine Ore / Skim Oil / Clean Reef:</strong> E</li>
-          <li><strong>Offload Ore / Empty Skimmer Tank:</strong> R</li>
-          <li><strong>Diver Swim Up / Down:</strong> Space / Shift</li>
-        </ul>
-        <div class="modal-footer">
-          <button class="btn-primary" id="btn-close-help">Resume Game</button>
-          <button class="btn-text" id="btn-help-summary">View Company Status Summary</button>
         </div>
       </div>
     </div>
