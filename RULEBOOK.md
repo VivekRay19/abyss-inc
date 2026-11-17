@@ -1,7 +1,7 @@
 # ABYSS INC. — OFFICIAL GAME RULEBOOK
 
 **Subtitle:** *The Ocean Is Not for Sale*  
-**Version:** 3.2.0  
+**Version:** 3.3.0  
 **Genre:** Single-Player 3D Environmental Strategy & Interactive Adventure
 
 ---
