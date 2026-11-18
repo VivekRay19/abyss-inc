@@ -497,11 +497,16 @@ function showCoopStep(stepName) {
 }
 
 if (btnOpenCoopModal) {
-  btnOpenCoopModal.addEventListener('click', () => {
+  btnOpenCoopModal.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[ABYSS INC.] Cooperative Play (2P) clicked');
     sound.resume();
     sound.playSonarPing(680);
     showCoopStep('choice');
-    if (modalCoopLobby) modalCoopLobby.classList.remove('hidden');
+    if (modalCoopLobby) {
+      modalCoopLobby.classList.remove('hidden');
+    }
   });
 }
 

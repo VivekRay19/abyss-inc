@@ -122,16 +122,23 @@ export class CoopMultiplayerManager {
     });
   }
 
-  // Check if public.expeditions table is installed and accessible
+  // Check if public.expeditions table is installed and accessible (with timeout)
   async checkDatabaseTables() {
     if (this.hasDbTables !== null) return this.hasDbTables;
     try {
-      const { error } = await this.client
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('DB check timeout')), 2500)
+      );
+      const queryPromise = this.client
         .from('expeditions')
         .select('id')
         .limit(1);
+
+      const res = await Promise.race([queryPromise, timeoutPromise]);
+      const error = res.error;
       this.hasDbTables = !error || error.code !== 'PGRST205';
     } catch (e) {
+      console.warn('[CoopMultiplayer] DB check failed or timed out, using Realtime channels directly:', e);
       this.hasDbTables = false;
     }
     return this.hasDbTables;
