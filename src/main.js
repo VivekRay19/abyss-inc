@@ -7,6 +7,7 @@ import { SurfaceOceanManager, HumanDiver } from './world/SurfaceAndDiver.js';
 import { GameController, RULE_CHANGES } from './game/GameState.js';
 import { GAME_BALANCE, GAME_STAGES, PLAYER_LOCATIONS } from './game/GameConfig.js';
 import { RestorationMiniGames } from './ui/RestorationMiniGames.js';
+import { coopManager, ROLES, ROLE_LABELS } from './multiplayer/CoopManager.js';
 
 // ============================================================================
 // 1. RENDERER & SCENE INITIALIZATION
@@ -467,6 +468,323 @@ function updateWelcomeAmbientCanvas(dt, elapsed) {
   }
 }
 
+// ============================================================================
+// COOPERATIVE MULTIPLAYER UI & FLOW
+// ============================================================================
+const modalCoopLobby = document.getElementById('modal-coop-lobby');
+const btnOpenCoopModal = document.getElementById('btn-open-coop-modal');
+const btnCloseCoopLobby = document.getElementById('btn-close-coop-lobby');
+const coopStepChoice = document.getElementById('coop-step-choice');
+const coopStepCreate = document.getElementById('coop-step-create');
+const coopStepJoin = document.getElementById('coop-step-join');
+const coopStepWaiting = document.getElementById('coop-step-waiting');
+
+const btnCoopGotoCreate = document.getElementById('btn-coop-goto-create');
+const btnCoopGotoJoin = document.getElementById('btn-coop-goto-join');
+const btnCoopBackFromCreate = document.getElementById('btn-coop-back-from-create');
+const btnCoopBackFromJoin = document.getElementById('btn-coop-back-from-join');
+const btnCoopSubmitCreate = document.getElementById('btn-coop-submit-create');
+const btnCoopSubmitJoin = document.getElementById('btn-coop-submit-join');
+const btnCopyRoomCode = document.getElementById('btn-copy-room-code');
+const btnCoopLeaveRoom = document.getElementById('btn-coop-leave-room');
+const btnCoopStartExpedition = document.getElementById('btn-coop-start-expedition');
+
+function showCoopStep(stepName) {
+  if (coopStepChoice) coopStepChoice.classList.toggle('hidden', stepName !== 'choice');
+  if (coopStepCreate) coopStepCreate.classList.toggle('hidden', stepName !== 'create');
+  if (coopStepJoin) coopStepJoin.classList.toggle('hidden', stepName !== 'join');
+  if (coopStepWaiting) coopStepWaiting.classList.toggle('hidden', stepName !== 'waiting');
+}
+
+if (btnOpenCoopModal) {
+  btnOpenCoopModal.addEventListener('click', () => {
+    sound.resume();
+    sound.playSonarPing(680);
+    showCoopStep('choice');
+    if (modalCoopLobby) modalCoopLobby.classList.remove('hidden');
+  });
+}
+
+if (btnCloseCoopLobby) {
+  btnCloseCoopLobby.addEventListener('click', () => {
+    if (coopManager.isCoopMode) coopManager.leaveExpedition();
+    if (modalCoopLobby) modalCoopLobby.classList.add('hidden');
+  });
+}
+
+if (btnCoopGotoCreate) {
+  btnCoopGotoCreate.addEventListener('click', () => {
+    showCoopStep('create');
+  });
+}
+
+if (btnCoopGotoJoin) {
+  btnCoopGotoJoin.addEventListener('click', () => {
+    document.getElementById('coop-join-error').classList.add('hidden');
+    showCoopStep('join');
+  });
+}
+
+if (btnCoopBackFromCreate) btnCoopBackFromCreate.addEventListener('click', () => showCoopStep('choice'));
+if (btnCoopBackFromJoin) btnCoopBackFromJoin.addEventListener('click', () => showCoopStep('choice'));
+
+if (btnCopyRoomCode) {
+  btnCopyRoomCode.addEventListener('click', () => {
+    if (coopManager.roomCode) {
+      navigator.clipboard.writeText(coopManager.roomCode);
+      const fb = document.getElementById('coop-copy-feedback');
+      if (fb) {
+        fb.classList.remove('hidden');
+        setTimeout(() => fb.classList.add('hidden'), 2000);
+      }
+    }
+  });
+}
+
+if (btnCoopLeaveRoom) {
+  btnCoopLeaveRoom.addEventListener('click', () => {
+    coopManager.leaveExpedition();
+    showCoopStep('choice');
+  });
+}
+
+if (btnCoopSubmitCreate) {
+  btnCoopSubmitCreate.addEventListener('click', async () => {
+    const pName = document.getElementById('input-coop-host-name').value || 'Alex';
+    const cName = document.getElementById('input-coop-company-name').value || 'DeepBlue Co.';
+    btnCoopSubmitCreate.disabled = true;
+    btnCoopSubmitCreate.textContent = 'Creating Room...';
+
+    const res = await coopManager.createExpedition({
+      playerName: pName,
+      companyName: cName,
+      startingParameters: {
+        machineCapacity: chosenCapacity,
+        workshopCapacity: chosenWorkshopCap,
+        oreSellingPrice: Number(sliderPrice.value),
+        extractionTarget: Number(sliderTarget.value)
+      }
+    });
+
+    btnCoopSubmitCreate.disabled = false;
+    btnCoopSubmitCreate.textContent = 'Generate Room Code →';
+
+    if (res.success) {
+      document.getElementById('coop-display-room-code').textContent = res.roomCode;
+      document.getElementById('roster-p1-name').textContent = pName;
+      showCoopStep('waiting');
+    }
+  });
+}
+
+if (btnCoopSubmitJoin) {
+  btnCoopSubmitJoin.addEventListener('click', async () => {
+    const pName = document.getElementById('input-coop-join-name').value || 'Dr. Morgan';
+    const rCode = document.getElementById('input-coop-room-code').value || '';
+    const errEl = document.getElementById('coop-join-error');
+    errEl.classList.add('hidden');
+
+    if (!rCode.trim()) {
+      errEl.textContent = 'Please enter a valid room code.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btnCoopSubmitJoin.disabled = true;
+    btnCoopSubmitJoin.textContent = 'Joining Room...';
+
+    const res = await coopManager.joinExpedition({
+      roomCode: rCode,
+      playerName: pName
+    });
+
+    btnCoopSubmitJoin.disabled = false;
+    btnCoopSubmitJoin.textContent = 'Join Expedition →';
+
+    if (res.success) {
+      document.getElementById('coop-display-room-code').textContent = res.roomCode;
+      document.getElementById('roster-p2-name').textContent = pName;
+      document.getElementById('roster-p2-status').textContent = '● Connected (Ready)';
+      document.getElementById('roster-p2-status').className = 'roster-status val-green';
+      showCoopStep('waiting');
+    } else {
+      errEl.textContent = res.error || 'Failed to join expedition.';
+      errEl.classList.remove('hidden');
+    }
+  });
+}
+
+// Presence and Roster UI update
+coopManager.onPresenceUpdate(({ self, peer, isRoomReady }) => {
+  const p1NameEl = document.getElementById('roster-p1-name');
+  const p2NameEl = document.getElementById('roster-p2-name');
+  const p2StatusEl = document.getElementById('roster-p2-status');
+  const startBtn = document.getElementById('btn-coop-start-expedition');
+  const coopPill = document.getElementById('hud-coop-pill');
+  const coopRoleEl = document.getElementById('hud-coop-role');
+  const coopPeerEl = document.getElementById('hud-coop-peer');
+
+  if (coopManager.isHost) {
+    if (p1NameEl) p1NameEl.textContent = `${self.name} (You)`;
+    if (peer) {
+      if (p2NameEl) p2NameEl.textContent = peer.name;
+      if (p2StatusEl) {
+        p2StatusEl.textContent = '● Connected (Ready)';
+        p2StatusEl.className = 'roster-status val-green';
+      }
+      if (startBtn) startBtn.classList.remove('hidden');
+    } else {
+      if (p2NameEl) p2NameEl.textContent = 'Waiting for Scientist...';
+      if (p2StatusEl) {
+        p2StatusEl.textContent = '○ Waiting to Join...';
+        p2StatusEl.className = 'roster-status val-gold';
+      }
+      if (startBtn) startBtn.classList.add('hidden');
+    }
+  } else {
+    // Marine Scientist view
+    if (peer && p1NameEl) p1NameEl.textContent = `${peer.name} (Host)`;
+    if (p2NameEl) p2NameEl.textContent = `${self.name} (You)`;
+    if (p2StatusEl) {
+      p2StatusEl.textContent = '● Connected (Ready)';
+      p2StatusEl.className = 'roster-status val-green';
+    }
+    if (startBtn) startBtn.classList.add('hidden'); // only host clicks start
+  }
+
+  // Update In-Game HUD pill if active
+  if (coopManager.isCoopMode) {
+    coopPill.classList.remove('hidden');
+    coopRoleEl.textContent = ROLE_LABELS[coopManager.myRole] || 'Crew';
+    coopPeerEl.textContent = peer ? `Crew: ${peer.name} (●)` : 'Crew: Reconnecting... (○)';
+  } else {
+    coopPill.classList.add('hidden');
+  }
+});
+
+coopManager.onStatusMessage((msg, type) => {
+  const logEl = document.getElementById('coop-status-log');
+  if (logEl) {
+    logEl.textContent = msg;
+    logEl.className = `hud-subnote val-${type === 'error' ? 'amber' : type === 'success' ? 'green' : 'cyan'}`;
+  }
+});
+
+// Host initiates expedition for both players
+if (btnCoopStartExpedition) {
+  btnCoopStartExpedition.addEventListener('click', () => {
+    sound.resume();
+    sound.playSonarPing(720);
+    modalCoopLobby.classList.add('hidden');
+    welcomeExpeditionStarted = true;
+    welcomeScreenEl.classList.add('fade-out');
+
+    // Host opens Starting Parameters Modal to configure or confirm
+    const introModal = document.getElementById('modal-intro');
+    if (introModal) introModal.classList.remove('hidden');
+
+    coopManager.sendAction('HOST_OPEN_PARAMS', {});
+    setTimeout(() => welcomeScreenEl.classList.add('hidden'), 500);
+  });
+}
+
+// Remote Action Handlers for Synchronized Multiplayer
+coopManager.onRemoteAction((action, data) => {
+  if (action === 'HOST_OPEN_PARAMS') {
+    modalCoopLobby.classList.add('hidden');
+    welcomeExpeditionStarted = true;
+    welcomeScreenEl.classList.add('fade-out');
+    const introModal = document.getElementById('modal-intro');
+    if (introModal) {
+      introModal.classList.remove('hidden');
+      document.getElementById('btn-start-game').textContent = 'Waiting for Host to Launch...';
+      document.getElementById('btn-start-game').disabled = true;
+    }
+    setTimeout(() => welcomeScreenEl.classList.add('hidden'), 500);
+  } else if (action === 'START_COOP_GAME') {
+    hideAllModals();
+    game.startGameWithParameters({
+      playerName: data.playerName,
+      companyName: data.companyName,
+      machineCapacity: data.machineCapacity,
+      workshopCapacity: data.workshopCapacity,
+      oreSellingPrice: data.oreSellingPrice,
+      extractionTarget: data.extractionTarget,
+      deferDive: true
+    });
+    refreshStageHUD();
+  } else if (action === 'SYNC_SURFACE_STEP') {
+    surfaceIntroStep = data.step;
+    renderSurfaceIntroStep();
+  } else if (action === 'DIVE_TO_FLOOR') {
+    hideSurfaceIntroSequenceUI();
+    game.diveToOceanFloor(false);
+  } else if (action === 'RETURN_SURFACE') {
+    game.returnToSurface();
+  } else if (action === 'MINE_TOGGLE') {
+    game.isMiningActive = data.isMiningActive;
+  } else if (action === 'MINE_ORE_EVENT') {
+    game.totalTonsMined = data.totalTonsMined;
+    game.oreInHold = data.oreInHold;
+    if (game.nearestDeposit && data.depositRemaining !== undefined) {
+      game.nearestDeposit.remainingTons = data.depositRemaining;
+    }
+    refreshStageHUD();
+  } else if (action === 'CLEAN_OIL_SLICK') {
+    const patch = surfaceOcean.oilPatches[data.patchIndex];
+    if (patch) {
+      patch.cleaned = true;
+      if (patch.group) patch.group.visible = false;
+    }
+    game.surfacePollutionCollected = data.surfacePollutionCollected;
+    game.surfaceTankFill = data.surfaceTankFill;
+    refreshStageHUD();
+    updateContextualObjective();
+  } else if (action === 'SELL_ORE') {
+    game.credits = data.credits;
+    game.oreStockpile = data.oreStockpile;
+    game.totalTonsSold = data.totalTonsSold;
+    refreshStageHUD();
+    updateContextualObjective();
+  } else if (action === 'RULE_RECOMMENDATION') {
+    const advEl = document.getElementById('rule-coop-advisory');
+    const advText = document.getElementById('rule-coop-advisory-text');
+    if (advEl && advText) {
+      advEl.classList.remove('hidden');
+      advText.textContent = `Marine Scientist recommends: ${data.recommendation}`;
+    }
+  } else if (action === 'RULE_ENACTED') {
+    if (document.getElementById('modal-rule-change')) {
+      document.getElementById('modal-rule-change').classList.add('hidden');
+    }
+    game.enactRuleChange(data.stageKey, data.optionId);
+    updateRuleStatusBadges();
+  } else if (action === 'PUZZLE_ROTATE_TILE') {
+    miniGames.rotateTile(data.tileIndex);
+    renderWaterPuzzle();
+  } else if (action === 'CORAL_PLANTED') {
+    miniGames.plantedSlots.add(data.slotIdx);
+    miniGames.coralsPlaced = miniGames.plantedSlots.size;
+    renderWaterPuzzle();
+    if (miniGames.coralsPlaced >= miniGames.coralsRequired) {
+      const completedOutcome = miniGames.currentVariation?.outcome || null;
+      setTimeout(() => {
+        document.getElementById('modal-restoration-minigame').classList.add('hidden');
+        miniGames.advanceToNextRestorationCycle();
+        game.completePuzzleAndCoralPlacement(completedOutcome);
+      }, 400);
+    }
+  } else if (action === 'STATE_SNAPSHOT') {
+    // Reconcile shared metrics
+    if (data.credits !== undefined) game.credits = data.credits;
+    if (data.totalTonsMined !== undefined) game.totalTonsMined = data.totalTonsMined;
+    if (data.oreStockpile !== undefined) game.oreStockpile = data.oreStockpile;
+    if (data.oreInHold !== undefined) game.oreInHold = data.oreInHold;
+    if (data.reefCleanProgress !== undefined) game.reefCleanProgress = data.reefCleanProgress;
+    refreshStageHUD();
+  }
+});
+
 if (btnStartExpedition && welcomeScreenEl) {
   btnStartExpedition.addEventListener('click', () => {
     sound.resume();
@@ -535,8 +853,7 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
   const priceVal = Number(sliderPrice.value);
   const targetVal = Number(sliderTarget.value);
 
-  // Move to Screen 3 (Ocean Surface Welcome Aboard) before deploying underwater
-  game.startGameWithParameters({
+  const startConfig = {
     playerName: pName,
     companyName: cName,
     machineCapacity: chosenCapacity,
@@ -544,8 +861,15 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
     oreSellingPrice: priceVal,
     extractionTarget: targetVal,
     deferDive: true
-  });
+  };
+
+  // Move to Screen 3 (Ocean Surface Welcome Aboard) before deploying underwater
+  game.startGameWithParameters(startConfig);
   refreshStageHUD();
+
+  if (coopManager.isCoopMode && coopManager.isHost) {
+    coopManager.sendAction('START_COOP_GAME', startConfig);
+  }
 });
 
 const btnCaptainContinue = document.getElementById('btn-captain-continue');
@@ -557,6 +881,9 @@ if (btnCaptainContinue) {
       surfaceIntroStep++;
       sound.playSonarPing(660);
       renderSurfaceIntroStep();
+      if (coopManager.isCoopMode) {
+        coopManager.sendAction('SYNC_SURFACE_STEP', { step: surfaceIntroStep });
+      }
     }
   });
 }
@@ -567,6 +894,9 @@ if (btnLetsStartMining) {
     sound.resume();
     hideSurfaceIntroSequenceUI();
     game.diveToOceanFloor(false);
+    if (coopManager.isCoopMode) {
+      coopManager.sendAction('DIVE_TO_FLOOR', {});
+    }
   });
 }
 
@@ -616,13 +946,55 @@ function openRuleModal(stageKey) {
     grid.appendChild(card);
   });
 
+  const advisoryEl = document.getElementById('rule-coop-advisory');
+  const scientistBtnWrap = document.getElementById('rule-scientist-buttons');
+  if (coopManager.isCoopMode) {
+    if (advisoryEl) advisoryEl.classList.remove('hidden');
+    if (coopManager.myRole === ROLES.MARINE_SCIENTIST) {
+      if (scientistBtnWrap) scientistBtnWrap.classList.remove('hidden');
+      confirmBtn.style.display = 'none'; // Operations Director proposes and confirms
+    } else {
+      if (scientistBtnWrap) scientistBtnWrap.classList.add('hidden');
+      confirmBtn.style.display = '';
+    }
+  } else {
+    if (advisoryEl) advisoryEl.classList.add('hidden');
+    confirmBtn.style.display = '';
+  }
+
   document.getElementById('modal-rule-change').classList.remove('hidden');
+}
+
+const btnAdviseEco = document.getElementById('btn-scientist-advise-eco');
+if (btnAdviseEco) {
+  btnAdviseEco.addEventListener('click', () => {
+    sound.resume();
+    const ecoText = pendingRuleStage === 'extraction' ? 'Restoration-First Permit (Eco Protection)' : 'Eco-Certified Green Market';
+    document.getElementById('rule-coop-advisory-text').textContent = `You recommended: ${ecoText}`;
+    coopManager.sendAction('RULE_RECOMMENDATION', { recommendation: ecoText });
+  });
+}
+
+const btnAdviseProfit = document.getElementById('btn-scientist-advise-profit');
+if (btnAdviseProfit) {
+  btnAdviseProfit.addEventListener('click', () => {
+    sound.resume();
+    const profitText = pendingRuleStage === 'extraction' ? 'Continuous Extraction (Profit Priority)' : 'Open Market (Immediate Sale)';
+    document.getElementById('rule-coop-advisory-text').textContent = `You recommended: ${profitText}`;
+    coopManager.sendAction('RULE_RECOMMENDATION', { recommendation: profitText });
+  });
 }
 
 document.getElementById('btn-confirm-rule').addEventListener('click', () => {
   if (!pendingRuleStage || !pendingRuleOptionId) return;
   document.getElementById('modal-rule-change').classList.add('hidden');
   game.enactRuleChange(pendingRuleStage, pendingRuleOptionId);
+  if (coopManager.isCoopMode) {
+    coopManager.sendAction('RULE_ENACTED', {
+      stageKey: pendingRuleStage,
+      optionId: pendingRuleOptionId
+    });
+  }
 });
 
 // Allow clicking Rule 1 / Rule 2 badges in the HUD if still Pending
@@ -716,6 +1088,9 @@ function renderWaterPuzzle() {
     btn.addEventListener('click', () => {
       miniGames.rotateTile(idx);
       renderWaterPuzzle();
+      if (coopManager.isCoopMode) {
+        coopManager.sendAction('PUZZLE_ROTATE_TILE', { tileIndex: idx });
+      }
     });
     gridEl.appendChild(btn);
   });
@@ -785,6 +1160,10 @@ document.querySelectorAll('.coral-slot-btn').forEach((btn) => {
     miniGames.coralsPlaced = miniGames.plantedSlots.size;
     sound.playRestorationChime();
     renderWaterPuzzle();
+
+    if (coopManager.isCoopMode) {
+      coopManager.sendAction('CORAL_PLANTED', { slotIdx });
+    }
 
     if (miniGames.coralsPlaced >= miniGames.coralsRequired) {
       const completedOutcome = miniGames.currentVariation?.outcome || null;
@@ -895,8 +1274,10 @@ function handleDiveOrSurfaceToggle() {
   sound.resume();
   if (game.canDiveToOceanFloor()) {
     game.diveToOceanFloor(false);
+    if (coopManager.isCoopMode) coopManager.sendAction('DIVE_TO_FLOOR', {});
   } else if (game.canReturnToSurface()) {
     game.returnToSurface();
+    if (coopManager.isCoopMode) coopManager.sendAction('RETURN_SURFACE', {});
   }
 }
 
@@ -913,6 +1294,9 @@ function handleInteractAction() {
     }
     if (game.nearestDeposit) {
       game.isMiningActive = !game.isMiningActive;
+      if (coopManager.isCoopMode) {
+        coopManager.sendAction('MINE_TOGGLE', { isMiningActive: game.isMiningActive });
+      }
     } else {
       spawnWorldPopup(fleet.crawler.root.position, 'Move closer to a glowing deposit!', 'popup-cyan');
     }
@@ -982,6 +1366,14 @@ function skimNearestOilSlick() {
   }
 
   const remainingPatches = surfaceOcean.oilPatches.filter((p) => !p.cleaned).length;
+  if (coopManager.isCoopMode) {
+    coopManager.sendAction('CLEAN_OIL_SLICK', {
+      patchIndex: surfaceOcean.oilPatches.indexOf(patch),
+      surfacePollutionCollected: game.surfacePollutionCollected,
+      surfaceTankFill: game.surfaceTankFill
+    });
+  }
+
   if (remainingPatches === 0 && surfaceOcean.oilPatches.length > 0) {
     game.surfaceCleaned = true;
     if (!game.rule2Enacted) {
@@ -1018,6 +1410,13 @@ document.getElementById('btn-sell-ore').addEventListener('click', () => {
     msgEl.textContent = `Sold ${res.tons}T at $${res.unitPrice.toLocaleString()}/T for ${formatCash(res.totalPayout)}!`;
     refreshStageHUD();
     updateContextualObjective();
+    if (coopManager.isCoopMode) {
+      coopManager.sendAction('SELL_ORE', {
+        credits: game.credits,
+        oreStockpile: game.oreStockpile,
+        totalTonsSold: game.totalTonsSold
+      });
+    }
   }
 });
 
@@ -1196,6 +1595,20 @@ function animate() {
   scene.fog.density = THREE.MathUtils.lerp(scene.fog.density, murkiness, 1 - Math.exp(-4 * dt));
 
   refreshStageHUD();
+
+  // Periodic State Broadcast in Co-op Mode (Every ~1 second from host)
+  if (coopManager.isCoopMode && coopManager.isHost && Math.floor(elapsed) % 2 === 0) {
+    coopManager.broadcastStateSnapshot({
+      credits: game.credits,
+      totalTonsMined: game.totalTonsMined,
+      oreStockpile: game.oreStockpile,
+      oreInHold: game.oreInHold,
+      reefCleanProgress: game.reefCleanProgress,
+      stage: game.stage,
+      location: game.location
+    });
+  }
+
   renderer.render(scene, camera);
 }
 

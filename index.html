@@ -35,6 +35,11 @@
       </div>
 
       <div class="top-right-pills">
+        <div id="hud-coop-pill" class="hud-coop-pill hidden" title="2-Player Online Cooperative Session">
+          <span class="coop-dot">●</span>
+          <span id="hud-coop-role">Operations Director</span>
+          <span id="hud-coop-peer" class="coop-peer-tag">Crew: Connecting...</span>
+        </div>
         <div class="rule-status-pill" id="rule-status-pill" title="Click a Pending Rule to review or enact (Max 2 per campaign)">
           <button type="button" id="rule1-badge" class="rule-chip">Rule 1: Pending</button>
           <button type="button" id="rule2-badge" class="rule-chip">Rule 2: Pending</button>
@@ -176,11 +181,115 @@
         <h1 class="welcome-title">
           <span class="title-abyss">ABYSS</span> <span class="title-inc">INC.</span>
         </h1>
-        <button type="button" class="btn-start-expedition" id="btn-start-expedition">
-          START EXPEDITION
-        </button>
+        <div class="welcome-actions-row">
+          <button type="button" class="btn-start-expedition" id="btn-start-expedition">
+            SINGLE PLAYER
+          </button>
+          <button type="button" class="btn-coop-expedition" id="btn-open-coop-modal">
+            COOPERATIVE PLAY (2P)
+          </button>
+        </div>
       </div>
     </section>
+
+    <!-- ====================================================================
+         MODAL COOPERATIVE PLAY (2-PLAYER EXPEDITION LOBBY & WAITING ROOM)
+         ==================================================================== -->
+    <div class="modal-backdrop hidden" id="modal-coop-lobby">
+      <div class="modal-card modal-wide">
+        <div class="modal-top-nav">
+          <span class="modal-badge badge-cyan">ONLINE COOPERATIVE EXPEDITION (2 PLAYERS)</span>
+          <button type="button" class="btn-secondary btn-back" id="btn-close-coop-lobby">✕ Close</button>
+        </div>
+        <h2>Online Cooperative Expedition</h2>
+        <p class="modal-desc">
+          Collaborate in real time. Player 1 commands operations and mining, while Player 2 leads marine science and reef restoration.
+        </p>
+
+        <!-- Step 1: Choice (Create or Join) -->
+        <div id="coop-step-choice" class="coop-choice-grid">
+          <div class="coop-card">
+            <div class="coop-icon">⚓</div>
+            <h3>Create Expedition</h3>
+            <p>Start a new campaign as the <strong>Operations Director</strong>. You will receive a room code to invite your Marine Scientist.</p>
+            <button type="button" class="btn-primary" id="btn-coop-goto-create">Create Expedition</button>
+          </div>
+          <div class="coop-card">
+            <div class="coop-icon">🪸</div>
+            <h3>Join Expedition</h3>
+            <p>Enter an active room code to join as the <strong>Marine Scientist</strong> and protect the ecosystem.</p>
+            <button type="button" class="btn-secondary" id="btn-coop-goto-join">Join Expedition</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Create Form -->
+        <div id="coop-step-create" class="hidden">
+          <div class="form-group">
+            <label for="input-coop-host-name">Your Name (Operations Director)</label>
+            <input type="text" id="input-coop-host-name" value="Alex" maxlength="24" />
+          </div>
+          <div class="form-group">
+            <label for="input-coop-company-name">Company Name</label>
+            <input type="text" id="input-coop-company-name" value="DeepBlue Co." maxlength="28" />
+          </div>
+          <div class="modal-footer modal-footer-row">
+            <button type="button" class="btn-secondary" id="btn-coop-back-from-create">← Back</button>
+            <button type="button" class="btn-primary" id="btn-coop-submit-create">Generate Room Code →</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Join Form -->
+        <div id="coop-step-join" class="hidden">
+          <div class="form-group">
+            <label for="input-coop-join-name">Your Name (Marine Scientist)</label>
+            <input type="text" id="input-coop-join-name" value="Dr. Morgan" maxlength="24" />
+          </div>
+          <div class="form-group">
+            <label for="input-coop-room-code">Expedition Room Code (e.g. ABYSS-4821)</label>
+            <input type="text" id="input-coop-room-code" placeholder="ABYSS-XXXX" maxlength="12" style="text-transform: uppercase; font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; letter-spacing: 2px;" />
+          </div>
+          <div id="coop-join-error" class="error-text hidden"></div>
+          <div class="modal-footer modal-footer-row">
+            <button type="button" class="btn-secondary" id="btn-coop-back-from-join">← Back</button>
+            <button type="button" class="btn-primary" id="btn-coop-submit-join">Join Expedition →</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Waiting Room -->
+        <div id="coop-step-waiting" class="hidden">
+          <div class="room-code-banner">
+            <span>EXPEDITION ROOM CODE:</span>
+            <div class="code-copy-row">
+              <strong id="coop-display-room-code" class="val-gold">ABYSS-????</strong>
+              <button type="button" class="btn-secondary" id="btn-copy-room-code">📋 Copy Code</button>
+            </div>
+            <p id="coop-copy-feedback" class="val-green hidden">Copied to clipboard!</p>
+          </div>
+
+          <div class="coop-roster-grid">
+            <div class="roster-slot" id="roster-slot-p1">
+              <div class="roster-badge badge-amber">PLAYER 1 — HOST</div>
+              <h4 id="roster-p1-name">Alex</h4>
+              <p class="roster-role">⚓ Operations Director</p>
+              <div class="roster-status val-green">● Connected (Ready)</div>
+            </div>
+            <div class="roster-slot" id="roster-slot-p2">
+              <div class="roster-badge badge-cyan">PLAYER 2 — CREW</div>
+              <h4 id="roster-p2-name">Waiting for Scientist...</h4>
+              <p class="roster-role">🪸 Marine Scientist</p>
+              <div id="roster-p2-status" class="roster-status val-gold">○ Waiting to Join...</div>
+            </div>
+          </div>
+
+          <div id="coop-status-log" class="hud-subnote" style="margin-top: 10px; min-height: 22px;"></div>
+
+          <div class="modal-footer modal-footer-row">
+            <button type="button" class="btn-secondary" id="btn-coop-leave-room">Leave Room</button>
+            <button type="button" class="btn-primary btn-large hidden" id="btn-coop-start-expedition">Start Expedition With Crew →</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ====================================================================
          SCREEN 2 / MODAL 1: STARTING PARAMETERS SCREEN (PLAYER, COMPANY & 4 PARAMETERS)
@@ -279,6 +388,15 @@
         <p class="modal-desc" id="rule-desc"></p>
 
         <div class="rule-cards-grid" id="rule-options-grid"></div>
+
+        <div id="rule-coop-advisory" class="rule-coop-advisory hidden">
+          <span class="coop-badge-indicator">CO-OP DELIBERATION</span>
+          <div id="rule-coop-advisory-text">Marine Scientist recommendation: Pending...</div>
+          <div id="rule-scientist-buttons" class="scientist-advice-row hidden">
+            <button type="button" class="btn-secondary" id="btn-scientist-advise-eco">Recommend Eco Option</button>
+            <button type="button" class="btn-secondary" id="btn-scientist-advise-profit">Recommend Profit Option</button>
+          </div>
+        </div>
 
         <div class="modal-footer">
           <button class="btn-primary btn-large" id="btn-confirm-rule" disabled>CONFIRM SELECTED RULE</button>
