@@ -1,53 +1,58 @@
 import * as THREE from 'three';
 
 function createMachineMaterials() {
-  // Procedural hazard stripe texture
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffc83d';
-  ctx.fillRect(0, 0, 128, 128);
-  ctx.fillStyle = '#182430';
-  for (let i = -128; i < 256; i += 32) {
-    ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i + 16, 0);
-    ctx.lineTo(i - 48, 128);
-    ctx.lineTo(i - 64, 128);
-    ctx.closePath();
-    ctx.fill();
-  }
-  const hazardTex = new THREE.CanvasTexture(canvas);
-  hazardTex.wrapS = THREE.RepeatWrapping;
-  hazardTex.wrapT = THREE.RepeatWrapping;
+  let hazardTex = null;
+  let subFaceTex = null;
 
-  // Friendly glowing digital face texture for NAUTILUS-IV companion sub (matching reference!)
-  const faceCanvas = document.createElement('canvas');
-  faceCanvas.width = 256;
-  faceCanvas.height = 128;
-  const fctx = faceCanvas.getContext('2d');
-  fctx.fillStyle = '#071826';
-  fctx.fillRect(0, 0, 256, 128);
-  fctx.shadowColor = '#38f4ff';
-  fctx.shadowBlur = 14;
-  fctx.fillStyle = '#70f8ff';
-  // Left eye
-  fctx.beginPath();
-  fctx.arc(82, 54, 14, 0, Math.PI * 2);
-  fctx.fill();
-  // Right eye
-  fctx.beginPath();
-  fctx.arc(174, 54, 14, 0, Math.PI * 2);
-  fctx.fill();
-  // Friendly smile arc
-  fctx.strokeStyle = '#70f8ff';
-  fctx.lineWidth = 7;
-  fctx.lineCap = 'round';
-  fctx.beginPath();
-  fctx.arc(128, 60, 22, 0.25 * Math.PI, 0.75 * Math.PI);
-  fctx.stroke();
-  const subFaceTex = new THREE.CanvasTexture(faceCanvas);
+  if (typeof document !== 'undefined') {
+    // Procedural hazard stripe texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffc83d';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#182430';
+    for (let i = -128; i < 256; i += 32) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + 16, 0);
+      ctx.lineTo(i - 48, 128);
+      ctx.lineTo(i - 64, 128);
+      ctx.closePath();
+      ctx.fill();
+    }
+    hazardTex = new THREE.CanvasTexture(canvas);
+    hazardTex.wrapS = THREE.RepeatWrapping;
+    hazardTex.wrapT = THREE.RepeatWrapping;
+
+    // Friendly glowing digital face texture for NAUTILUS-IV companion sub (matching reference!)
+    const faceCanvas = document.createElement('canvas');
+    faceCanvas.width = 256;
+    faceCanvas.height = 128;
+    const fctx = faceCanvas.getContext('2d');
+    fctx.fillStyle = '#071826';
+    fctx.fillRect(0, 0, 256, 128);
+    fctx.shadowColor = '#38f4ff';
+    fctx.shadowBlur = 14;
+    fctx.fillStyle = '#70f8ff';
+    // Left eye
+    fctx.beginPath();
+    fctx.arc(82, 54, 14, 0, Math.PI * 2);
+    fctx.fill();
+    // Right eye
+    fctx.beginPath();
+    fctx.arc(174, 54, 14, 0, Math.PI * 2);
+    fctx.fill();
+    // Friendly smile arc
+    fctx.strokeStyle = '#70f8ff';
+    fctx.lineWidth = 7;
+    fctx.lineCap = 'round';
+    fctx.beginPath();
+    fctx.arc(128, 60, 22, 0.25 * Math.PI, 0.75 * Math.PI);
+    fctx.stroke();
+    subFaceTex = new THREE.CanvasTexture(faceCanvas);
+  }
 
   return {
     yellowArmor: new THREE.MeshStandardMaterial({
@@ -112,6 +117,7 @@ export class MiningFleetManager {
     this.mats = createMachineMaterials();
 
     this.crawler = null;
+    this.crawler2 = null; // Second Mining Machine for Player 2 (Co-op mode)
     this.submarine = null;
     this.surfaceVessel = null;
     this.restorationDrone = null;
@@ -120,7 +126,19 @@ export class MiningFleetManager {
     this.riserPulses = [];
     this.tetherSegments = [];
 
-    this.buildCrawler();
+    this.crawler = this.createCrawlerInstance({
+      id: 'crawler',
+      name: 'TRITON-IX (P1)',
+      fullName: 'TRITON-IX Seafloor Crawler',
+      role: 'Operations Director Vehicle',
+      playerLabel: 'P1 • OPERATIONS',
+      badgeColorHex: 0xffc83d, // Amber gold
+      ringColor: 0x18c8da,
+      startX: -1.8,
+      startZ: 0.6,
+      rotY: 0.72
+    });
+
     this.buildSupportSubmarine();
     this.buildSurfaceVesselAndRiser();
     this.buildRestorationDrone();
@@ -129,20 +147,20 @@ export class MiningFleetManager {
   // =========================================================================
   // A. AUTONOMOUS SEAFLOOR MINING VEHICLE ("TRITON-IX" Heavy Tracked Crawler)
   // =========================================================================
-  buildCrawler() {
+  createCrawlerInstance(config = {}) {
     const root = new THREE.Group();
-    const startX = -1.8;
-    const startZ = 0.6;
+    const startX = config.startX !== undefined ? config.startX : -1.8;
+    const startZ = config.startZ !== undefined ? config.startZ : 0.6;
     const startY = this.oceanEnv.getTerrainHeight(startX, startZ);
     root.position.set(startX, startY, startZ);
-    // Point diagonally toward the central nodule deposit like the reference image
-    root.rotation.y = 0.72;
+    root.rotation.y = config.rotY !== undefined ? config.rotY : 0.72;
 
+    const ringColor = config.ringColor || 0x18c8da;
     // Selection indicator ring underneath machine
     const selRingGeo = new THREE.RingGeometry(2.75, 3.05, 36);
     selRingGeo.rotateX(-Math.PI / 2);
     const selRingMat = new THREE.MeshBasicMaterial({
-      color: 0x18c8da,
+      color: ringColor,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.85
@@ -150,6 +168,42 @@ export class MiningFleetManager {
     const selectionRing = new THREE.Mesh(selRingGeo, selRingMat);
     selectionRing.position.y = 0.14;
     root.add(selectionRing);
+
+    // Player Identification Floating Badge above the machine
+    let playerBadgeMesh = null;
+    if (typeof document !== 'undefined') {
+      const labelCanvas = document.createElement('canvas');
+      labelCanvas.width = 256;
+      labelCanvas.height = 64;
+      const lctx = labelCanvas.getContext('2d');
+      lctx.fillStyle = 'rgba(7, 26, 42, 0.85)';
+      lctx.strokeStyle = config.badgeColorHex ? `#${config.badgeColorHex.toString(16).padStart(6, '0')}` : '#18c8da';
+      lctx.lineWidth = 4;
+      lctx.beginPath();
+      lctx.roundRect(8, 8, 240, 48, 12);
+      lctx.fill();
+      lctx.stroke();
+
+      lctx.fillStyle = '#ffffff';
+      lctx.font = 'bold 22px Fredoka, Inter, sans-serif';
+      lctx.textAlign = 'center';
+      lctx.textBaseline = 'middle';
+      lctx.fillText(config.playerLabel || 'TRITON-IX', 128, 32);
+
+      const labelTex = new THREE.CanvasTexture(labelCanvas);
+      const labelGeo = new THREE.PlaneGeometry(2.4, 0.6);
+      const labelMat = new THREE.MeshBasicMaterial({
+        map: labelTex,
+        transparent: true,
+        side: THREE.DoubleSide
+      });
+      playerBadgeMesh = new THREE.Mesh(labelGeo, labelMat);
+      playerBadgeMesh.position.set(0, 3.6, 0);
+      root.add(playerBadgeMesh);
+    } else {
+      playerBadgeMesh = new THREE.Object3D();
+      root.add(playerBadgeMesh);
+    }
 
     // 1. Dual Heavy Articulated Caterpillar Tracks (Left & Right)
     const wheelMeshes = [];
@@ -431,12 +485,15 @@ export class MiningFleetManager {
 
     this.scene.add(root);
 
-    this.crawler = {
-      id: 'crawler',
-      name: 'TRITON-IX',
-      fullName: 'TRITON-IX Seafloor Crawler',
-      role: 'Heavy Polymetallic Extraction Vehicle',
+    const crawlerObj = {
+      id: config.id || 'crawler',
+      name: config.name || 'TRITON-IX',
+      fullName: config.fullName || 'TRITON-IX Seafloor Crawler',
+      role: config.role || 'Heavy Polymetallic Extraction Vehicle',
+      playerLabel: config.playerLabel || 'TRITON-IX',
+      ownerRole: config.ownerRole || 'OPERATIONS_DIRECTOR',
       root,
+      playerBadgeMesh,
       chassisGroup,
       selectionRing,
       wheelMeshes,
@@ -467,7 +524,26 @@ export class MiningFleetManager {
       }
     };
 
-    hitMesh.userData = { type: 'machine', machineId: 'crawler' };
+    hitMesh.userData = { type: 'machine', machineId: crawlerObj.id };
+    return crawlerObj;
+  }
+
+  ensureSecondCrawler() {
+    if (this.crawler2) return this.crawler2;
+    this.crawler2 = this.createCrawlerInstance({
+      id: 'crawler2',
+      name: 'TRITON-X (P2)',
+      fullName: 'TRITON-X Research & Extraction Vehicle',
+      role: 'Marine Scientist Mining Crawler',
+      playerLabel: 'P2 • SCIENTIST',
+      badgeColorHex: 0x39d9c4, // Cyan turquoise
+      ringColor: 0x39d9c4,
+      ownerRole: 'MARINE_SCIENTIST',
+      startX: 3.5,
+      startZ: 2.2,
+      rotY: 2.45
+    });
+    return this.crawler2;
   }
 
   // =========================================================================
@@ -1186,9 +1262,9 @@ export class MiningFleetManager {
       }
     }
 
-    // Animate TRITON-IX Crawler
-    if (this.crawler) {
-      const c = this.crawler;
+    // Animate Crawlers (Player 1 TRITON-IX & optional Player 2 TRITON-X)
+    const crawlersToAnimate = [this.crawler, this.crawler2].filter(Boolean);
+    for (const c of crawlersToAnimate) {
       c.sensorHead.rotation.y = Math.sin(elapsed * 1.5) * 0.65;
 
       const capRatio = c.capacity / c.maxCapacity;

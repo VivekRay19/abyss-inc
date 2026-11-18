@@ -56,13 +56,37 @@ const diver = new HumanDiver(scene, oceanEnv);
 if (fleet.submarine && fleet.submarine.root) fleet.submarine.root.visible = false;
 if (fleet.restorationDrone && fleet.restorationDrone.root) fleet.restorationDrone.root.visible = false;
 
+function getActiveLocalCrawler() {
+  if (coopManager.isCoopMode && coopManager.myRole === ROLES.MARINE_SCIENTIST) {
+    return fleet.ensureSecondCrawler();
+  }
+  return fleet.crawler;
+}
+
+function getOtherRemoteCrawler() {
+  if (coopManager.isCoopMode) {
+    if (coopManager.myRole === ROLES.MARINE_SCIENTIST) {
+      return fleet.crawler;
+    } else {
+      return fleet.ensureSecondCrawler();
+    }
+  }
+  return null;
+}
+
 const lastCrawlerSeabedPos = new THREE.Vector3(-2.5, oceanEnv.getTerrainHeight(-2.5, -1.5), -1.5);
+const lastCrawler2SeabedPos = new THREE.Vector3(3.5, oceanEnv.getTerrainHeight(3.5, 2.2), 2.2);
 
 function placeCrawlerOnBoatDeck() {
   const vesselGroup = fleet.surfaceVessel.group;
   const vesselPos = vesselGroup.position;
-  fleet.crawler.root.position.set(vesselPos.x, vesselPos.y + 1.25, vesselPos.z - 2.2);
+  fleet.crawler.root.position.set(vesselPos.x - 1.2, vesselPos.y + 1.25, vesselPos.z - 2.2);
   fleet.crawler.root.rotation.set(vesselGroup.rotation.x, Math.PI, vesselGroup.rotation.z);
+
+  if (fleet.crawler2) {
+    fleet.crawler2.root.position.set(vesselPos.x + 1.2, vesselPos.y + 1.25, vesselPos.z - 2.2);
+    fleet.crawler2.root.rotation.set(vesselGroup.rotation.x, Math.PI, vesselGroup.rotation.z);
+  }
 }
 placeCrawlerOnBoatDeck();
 
@@ -86,7 +110,17 @@ const game = new GameController(oceanEnv, ecosystem, fleet, sound, {
   onWorldPopup: (pos, text, cls) => spawnWorldPopup(pos, text, cls),
   onStageChange: (stage, location) => handleStageTransition(stage, location),
   onRuleEnacted: () => updateRuleStatusBadges(),
-  onDefeat: (reason) => showSummaryModal({ isDefeat: true, reason })
+  onDefeat: (reason) => showSummaryModal({ isDefeat: true, reason }),
+  onCrawlerMove: (data) => {
+    if (coopManager.isCoopMode) {
+      coopManager.sendAction('CRAWLER_MOVE', data);
+    }
+  },
+  onMineOreExtracted: (data) => {
+    if (coopManager.isCoopMode) {
+      coopManager.sendAction('MINE_ORE_EVENT', data);
+    }
+  }
 });
 
 const miniGames = new RestorationMiniGames(game, sound, (kind, val) => {
@@ -379,6 +413,15 @@ function handleStageTransition(stage, location) {
       true
     );
   } else if (location === PLAYER_LOCATIONS.UNDERWATER) {
+    if (coopManager.isCoopMode) {
+      fleet.ensureSecondCrawler();
+      if (fleet.crawler2 && fleet.crawler2.root) {
+        fleet.crawler2.root.visible = true;
+      }
+    } else if (fleet.crawler2 && fleet.crawler2.root) {
+      fleet.crawler2.root.visible = false;
+    }
+
     stageHudEl.classList.remove('hidden');
     document.getElementById('hud-mining').classList.remove('hidden');
 
@@ -659,10 +702,16 @@ coopManager.onPresenceUpdate(({ self, peer, isRoomReady }) => {
 
   // Update In-Game HUD pill if active
   if (coopManager.isCoopMode) {
+    fleet.ensureSecondCrawler();
+    game.activeLocalCrawler = getActiveLocalCrawler();
     coopPill.classList.remove('hidden');
     coopRoleEl.textContent = ROLE_LABELS[coopManager.myRole] || 'Crew';
     coopPeerEl.textContent = peer ? `Crew: ${peer.name} (●)` : 'Crew: Reconnecting... (○)';
   } else {
+    game.activeLocalCrawler = fleet.crawler;
+    if (fleet.crawler2 && fleet.crawler2.root) {
+      fleet.crawler2.root.visible = false;
+    }
     coopPill.classList.add('hidden');
   }
 });
@@ -707,6 +756,8 @@ coopManager.onRemoteAction((action, data) => {
     }
     setTimeout(() => welcomeScreenEl.classList.add('hidden'), 500);
   } else if (action === 'START_COOP_GAME') {
+    fleet.ensureSecondCrawler();
+    game.activeLocalCrawler = getActiveLocalCrawler();
     hideAllModals();
     game.startGameWithParameters({
       playerName: data.playerName,
@@ -778,6 +829,22 @@ coopManager.onRemoteAction((action, data) => {
         miniGames.advanceToNextRestorationCycle();
         game.completePuzzleAndCoralPlacement(completedOutcome);
       }, 400);
+    }
+  } else if (action === 'CRAWLER_MOVE') {
+    const remoteCrawler = getOtherRemoteCrawler();
+    if (remoteCrawler && remoteCrawler.root) {
+      remoteCrawler.root.position.set(data.x, data.y, data.z);
+      remoteCrawler.root.rotation.y = data.rotY;
+      remoteCrawler.state = data.state || 'IDLE';
+      if (data.trackProgress !== undefined) remoteCrawler.trackProgress = data.trackProgress;
+      if (data.state === 'MOVING') {
+        fleet.spawnCrawlerTreadMark(data.x, data.z, data.rotY);
+      }
+    }
+  } else if (action === 'PEER_MINE_TOGGLE') {
+    const remoteCrawler = getOtherRemoteCrawler();
+    if (remoteCrawler) {
+      remoteCrawler.state = data.isMining ? 'MINING' : 'IDLE';
     }
   } else if (action === 'STATE_SNAPSHOT') {
     // Reconcile shared metrics
@@ -867,6 +934,13 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
     extractionTarget: targetVal,
     deferDive: true
   };
+
+  if (coopManager.isCoopMode) {
+    fleet.ensureSecondCrawler();
+    game.activeLocalCrawler = getActiveLocalCrawler();
+  } else {
+    game.activeLocalCrawler = fleet.crawler;
+  }
 
   // Move to Screen 3 (Ocean Surface Welcome Aboard) before deploying underwater
   game.startGameWithParameters(startConfig);
@@ -1288,10 +1362,11 @@ function handleDiveOrSurfaceToggle() {
 
 function handleInteractAction() {
   sound.resume();
+  const myCrawler = getActiveLocalCrawler();
   if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
     if (game.miningProhibited) {
       spawnWorldPopup(
-        fleet.crawler.root.position,
+        myCrawler.root.position,
         'Mining Prohibited until Restoration Complete!',
         'popup-gold'
       );
@@ -1299,11 +1374,15 @@ function handleInteractAction() {
     }
     if (game.nearestDeposit) {
       game.isMiningActive = !game.isMiningActive;
+      myCrawler.state = game.isMiningActive ? 'MINING' : 'IDLE';
       if (coopManager.isCoopMode) {
-        coopManager.sendAction('MINE_TOGGLE', { isMiningActive: game.isMiningActive });
+        coopManager.sendAction('PEER_MINE_TOGGLE', {
+          isMining: game.isMiningActive,
+          crawlerId: myCrawler.id
+        });
       }
     } else {
-      spawnWorldPopup(fleet.crawler.root.position, 'Move closer to a glowing deposit!', 'popup-cyan');
+      spawnWorldPopup(myCrawler.root.position, 'Move closer to a glowing deposit!', 'popup-cyan');
     }
   } else if (game.location === PLAYER_LOCATIONS.SURFACE) {
     skimNearestOilSlick();
@@ -1312,18 +1391,19 @@ function handleInteractAction() {
 
 function handleOffloadOrEmptyAction() {
   sound.resume();
+  const myCrawler = getActiveLocalCrawler();
   if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
     if (game.oreInHold > 0) {
       const off = game.offloadCrawlerToBoat();
       if (off > 0) {
         spawnWorldPopup(
-          fleet.crawler.root.position,
+          myCrawler.root.position,
           `Offloaded ${off}T to Workshop (${game.oreStockpile}/${game.businessSettings.workshopCapacity}T)`,
           'popup-gold'
         );
       } else {
         spawnWorldPopup(
-          fleet.crawler.root.position,
+          myCrawler.root.position,
           `Workshop Full (${game.businessSettings.workshopCapacity}T)! Sell ore on surface.`,
           'popup-gold'
         );
@@ -1484,6 +1564,10 @@ function updateDeploymentOrAscent() {
   const targetZ = game.diveCount === 1 ? vesselPos.z - 5.2 : lastCrawlerSeabedPos.z;
   const landY = oceanEnv.getTerrainHeight(targetX, targetZ);
 
+  const target2X = lastCrawler2SeabedPos.x;
+  const target2Z = lastCrawler2SeabedPos.z;
+  const land2Y = oceanEnv.getTerrainHeight(target2X, target2Z);
+
   if (game.location === PLAYER_LOCATIONS.DIVING) {
     const duration = game.diveCount === 1 ? 4.4 : 2.2;
     const t = Math.min(1, game.stageTimer / duration);
@@ -1498,10 +1582,16 @@ function updateDeploymentOrAscent() {
       fleet.crawler.root.position.set(curX, curY, curZ);
       fleet.crawler.root.rotation.set(0, Math.PI + ease1 * 0.35, 0);
 
+      if (fleet.crawler2) {
+        fleet.crawler2.root.position.set(curX + 2.4, curY, curZ);
+        fleet.crawler2.root.rotation.set(0, Math.PI + ease1 * 0.35, 0);
+      }
+
       if (fleet.surfaceVessel.craneBoom) {
         fleet.surfaceVessel.craneBoom.rotation.y = ease1 * 0.42;
       }
-      camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 0.8, 0));
+      const myCrawler = getActiveLocalCrawler();
+      camRig.desiredTarget.copy(myCrawler.root.position).add(new THREE.Vector3(0, 0.8, 0));
       camRig.desiredPos.copy(vesselPos).add(new THREE.Vector3(12, 7.5, -12.5));
     } else {
       // Phase 2: Crane lowers the mining machine into the water and camera follows descent to seabed
@@ -1516,11 +1606,19 @@ function updateDeploymentOrAscent() {
       const curY = THREE.MathUtils.lerp(startY, landY, ease2);
       fleet.crawler.root.position.set(curX, curY, curZ);
 
+      if (fleet.crawler2) {
+        const cur2X = THREE.MathUtils.lerp(vesselPos.x + 1.2, target2X, ease2);
+        const cur2Z = THREE.MathUtils.lerp(vesselPos.z - 2.2, target2Z, ease2);
+        const cur2Y = THREE.MathUtils.lerp(startY, land2Y, ease2);
+        fleet.crawler2.root.position.set(cur2X, cur2Y, cur2Z);
+      }
+
       if (fleet.surfaceVessel.craneBoom) {
         fleet.surfaceVessel.craneBoom.rotation.y = Math.sin((1 - ease2 * 0.5) * Math.PI * 0.5) * 0.42;
       }
-      camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 1, 0));
-      camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(10, 8, 12));
+      const myCrawler = getActiveLocalCrawler();
+      camRig.desiredTarget.copy(myCrawler.root.position).add(new THREE.Vector3(0, 1, 0));
+      camRig.desiredPos.copy(myCrawler.root.position).add(new THREE.Vector3(10, 8, 12));
     }
 
     if (t >= 1) {
@@ -1529,16 +1627,24 @@ function updateDeploymentOrAscent() {
   } else if (game.location === PLAYER_LOCATIONS.SURFACING) {
     const duration = 2.4;
     const t = Math.min(1, game.stageTimer / duration);
-    const curX = THREE.MathUtils.lerp(lastCrawlerSeabedPos.x, vesselPos.x, t);
+    const curX = THREE.MathUtils.lerp(lastCrawlerSeabedPos.x, vesselPos.x - 1.2, t);
     const curZ = THREE.MathUtils.lerp(lastCrawlerSeabedPos.z, vesselPos.z - 2.2, t);
     const curY = THREE.MathUtils.lerp(lastCrawlerSeabedPos.y, vesselPos.y + 1.25, t);
     fleet.crawler.root.position.set(curX, curY, curZ);
 
+    if (fleet.crawler2) {
+      const cur2X = THREE.MathUtils.lerp(lastCrawler2SeabedPos.x, vesselPos.x + 1.2, t);
+      const cur2Z = THREE.MathUtils.lerp(lastCrawler2SeabedPos.z, vesselPos.z - 2.2, t);
+      const cur2Y = THREE.MathUtils.lerp(lastCrawler2SeabedPos.y, vesselPos.y + 1.25, t);
+      fleet.crawler2.root.position.set(cur2X, cur2Y, cur2Z);
+    }
+
     if (fleet.surfaceVessel.craneBoom) {
       fleet.surfaceVessel.craneBoom.rotation.y = Math.sin(t * Math.PI) * 0.55;
     }
-    camRig.desiredTarget.copy(fleet.crawler.root.position);
-    camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(10, 8, 12));
+    const myCrawler = getActiveLocalCrawler();
+    camRig.desiredTarget.copy(myCrawler.root.position);
+    camRig.desiredPos.copy(myCrawler.root.position).add(new THREE.Vector3(10, 8, 12));
 
     if (t >= 1) {
       placeCrawlerOnBoatDeck();
@@ -1567,11 +1673,13 @@ function animate() {
   fleet.update(dt, elapsed);
   surfaceOcean.update(elapsed, fleet.surfaceVessel ? fleet.surfaceVessel.group : null);
 
+  const myCrawler = getActiveLocalCrawler();
+
   if (game.location === PLAYER_LOCATIONS.DIVING || game.location === PLAYER_LOCATIONS.SURFACING) {
     updateDeploymentOrAscent();
   } else if (game.location === PLAYER_LOCATIONS.UNDERWATER) {
-    camRig.desiredTarget.copy(fleet.crawler.root.position).add(new THREE.Vector3(0, 1, 0));
-    camRig.desiredPos.copy(fleet.crawler.root.position).add(new THREE.Vector3(11, 10, 14));
+    camRig.desiredTarget.copy(myCrawler.root.position).add(new THREE.Vector3(0, 1, 0));
+    camRig.desiredPos.copy(myCrawler.root.position).add(new THREE.Vector3(11, 10, 14));
   } else if (game.stage === GAME_STAGES.SURFACE_WELCOME) {
     placeCrawlerOnBoatDeck();
     const vPos = fleet.surfaceVessel.group.position;

@@ -660,7 +660,7 @@ export class GameController {
   }
 
   updateUnderwaterGameplay(dt, elapsed, keyInput) {
-    const c = this.fleet.crawler;
+    const c = this.activeLocalCrawler || this.fleet.crawler;
     const hasMove =
       this.underwaterMode === 'CRAWLER' &&
       (Math.abs(keyInput.forward) > 0.01 || Math.abs(keyInput.turn) > 0.01);
@@ -687,8 +687,33 @@ export class GameController {
         this.fleet.spawnCrawlerTreadMark(nextX, nextZ, c.root.rotation.y);
         this.ecosystem.spawnSedimentBurst(c.root.position, 2, false);
       }
+
+      if (this.ui.onCrawlerMove) {
+        this.ui.onCrawlerMove({
+          crawlerId: c.id,
+          x: nextX,
+          y: nextY,
+          z: nextZ,
+          rotY: c.root.rotation.y,
+          state: c.state,
+          trackProgress: c.trackProgress
+        });
+      }
     } else if (!this.isMiningActive) {
-      c.state = 'IDLE';
+      if (c.state === 'MOVING') {
+        c.state = 'IDLE';
+        if (this.ui.onCrawlerMove) {
+          this.ui.onCrawlerMove({
+            crawlerId: c.id,
+            x: c.root.position.x,
+            y: c.root.position.y,
+            z: c.root.position.z,
+            rotY: c.root.rotation.y,
+            state: 'IDLE',
+            trackProgress: c.trackProgress
+          });
+        }
+      }
     }
 
     // Auto-offload if near Riser Hub (respecting workshopCapacity)
@@ -788,6 +813,16 @@ export class GameController {
               `+${extractTons}T Ore (${Math.round(this.oreInHold)}/${this.businessSettings.machineCapacity}T)`,
               'popup-cyan'
             );
+          }
+
+          if (this.ui.onMineOreExtracted) {
+            this.ui.onMineOreExtracted({
+              depositId: nearestDep.id,
+              depositRemaining: nearestDep.remainingTons,
+              extractTons,
+              oreInHold: this.oreInHold,
+              totalTonsMined: this.totalTonsMined
+            });
           }
 
           if (nearestDep.remainingTons <= 0.1) {
